@@ -5,6 +5,13 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -169,6 +176,22 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [showStats, setShowStats] = useState(false);
   const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number }[]>([]);
 
+  // 对局玩家选择状态
+  const [selectedPlayers, setSelectedPlayers] = useState<{
+    player1: number | null;
+    player2: number | null;
+    player3: number | null;
+    player4: number | null;
+  }>({
+    player1: null,
+    player2: null,
+    player3: null,
+    player4: null,
+  });
+
+  // 判断对局是否已保存到数据库
+  const isMatchSaved = records.length > 0;
+
   // 计算显示的对局名 - 基于第一条记录的时间或现有matchName
   const displayMatchName = records.length > 0 
     ? generateMatchNameFromTime(records[0].created_at) 
@@ -181,9 +204,16 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         const matchRecords = await fetchRecordsByMatchId(matchId);
         setRecords(matchRecords);
         
-        // 如果有记录，计算统计数据
         if (matchRecords.length > 0) {
+          // 如果有记录，计算统计数据
           calculateBulletStats(matchRecords);
+          // 使用数据库中的玩家，并设置选择状态（已锁定）
+          setSelectedPlayers({
+            player1: matchRecords[0].playerId,
+            player2: matchRecords[0].player2Id,
+            player3: matchRecords[0].player3Id,
+            player4: matchRecords[0].player4Id,
+          });
         }
       };
       
@@ -191,6 +221,13 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
     } else {
       setRecords([]);
       setShowStats(false);
+      // 清除对局时重置玩家选择
+      setSelectedPlayers({
+        player1: null,
+        player2: null,
+        player3: null,
+        player4: null,
+      });
     }
   }, [matchId]);
   
@@ -271,6 +308,16 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 获取玩家图标
   const getPlayerIcon = (playerId: number) => {
     return players.find(p => p.id === playerId)?.icon || "";
+  };
+
+  // 处理玩家选择变化
+  const handlePlayerChange = (playerPosition: 'player1' | 'player2' | 'player3' | 'player4', playerId: number) => {
+    if (!isMatchSaved) {
+      setSelectedPlayers(prev => ({
+        ...prev,
+        [playerPosition]: playerId
+      }));
+    }
   };
 
   // 获取中文轮次显示
@@ -369,24 +416,36 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
 
   // 新一轮游戏
   const handleNewRound = async () => {
-    if (!matchId || !records.length) return;
-
-    // 获取最后一条记录作为模板
-    const lastRecord = records[records.length - 1];
-    const newRound = lastRecord.gameRound + 1;
-
-    const newRecord: Partial<LbRecord> = {
-      matchId,
-      matchName,
-      gameRound: newRound,
-      gameTurn: 1,
-      playerId: lastRecord.playerId,
-      player2Id: lastRecord.player2Id,
-      player3Id: lastRecord.player3Id,
-      player4Id: lastRecord.player4Id,
-    };
+    if (!matchId) return;
 
     try {
+      // 根据是否有记录决定使用的玩家
+      const playerIds = isMatchSaved && records.length > 0 
+        ? {
+            playerId: records[records.length - 1].playerId,
+            player2Id: records[records.length - 1].player2Id,
+            player3Id: records[records.length - 1].player3Id,
+            player4Id: records[records.length - 1].player4Id,
+          }
+        : {
+            playerId: selectedPlayers.player1!,
+            player2Id: selectedPlayers.player2!,
+            player3Id: selectedPlayers.player3!,
+            player4Id: selectedPlayers.player4!,
+          };
+
+      const newRound = isMatchSaved && records.length > 0 
+        ? records[records.length - 1].gameRound + 1 
+        : 1;
+
+      const newRecord: Partial<LbRecord> = {
+        matchId,
+        matchName,
+        gameRound: newRound,
+        gameTurn: 1,
+        ...playerIds,
+      };
+
       const success = await createRecord(newRecord);
       if (success) {
         // 重新加载数据
@@ -408,24 +467,40 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
 
   // 新一回合
   const handleNewTurn = async () => {
-    if (!matchId || !records.length) return;
-
-    // 获取最后一条记录作为模板
-    const lastRecord = records[records.length - 1];
-    const newTurn = lastRecord.gameTurn + 1;
-
-    const newRecord: Partial<LbRecord> = {
-      matchId,
-      matchName,
-      gameRound: lastRecord.gameRound,
-      gameTurn: newTurn,
-      playerId: lastRecord.playerId,
-      player2Id: lastRecord.player2Id,
-      player3Id: lastRecord.player3Id,
-      player4Id: lastRecord.player4Id,
-    };
+    if (!matchId) return;
 
     try {
+      // 根据是否有记录决定使用的玩家
+      const playerIds = isMatchSaved && records.length > 0 
+        ? {
+            playerId: records[records.length - 1].playerId,
+            player2Id: records[records.length - 1].player2Id,
+            player3Id: records[records.length - 1].player3Id,
+            player4Id: records[records.length - 1].player4Id,
+          }
+        : {
+            playerId: selectedPlayers.player1!,
+            player2Id: selectedPlayers.player2!,
+            player3Id: selectedPlayers.player3!,
+            player4Id: selectedPlayers.player4!,
+          };
+
+      const gameRound = isMatchSaved && records.length > 0 
+        ? records[records.length - 1].gameRound 
+        : 1;
+      
+      const newTurn = isMatchSaved && records.length > 0 
+        ? records[records.length - 1].gameTurn + 1 
+        : 1;
+
+      const newRecord: Partial<LbRecord> = {
+        matchId,
+        matchName,
+        gameRound,
+        gameTurn: newTurn,
+        ...playerIds,
+      };
+
       const success = await createRecord(newRecord);
       if (success) {
         // 重新加载数据
@@ -466,16 +541,42 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const newMatchName = `${year}-${month}-${day} ${hours}:${minutes}`;
       
-      // 创建初始记录，使用前4个玩家
+      // 只创建对局，不创建记录，等待用户选择玩家
+      if (onNewMatch) {
+        // 初始化玩家选择为前4个玩家
+        setSelectedPlayers({
+          player1: players[0].id,
+          player2: players[1].id,
+          player3: players[2].id,
+          player4: players[3].id,
+        });
+        onNewMatch(nextMatchId, newMatchName);
+      } else {
+        alert('创建新对局失败');
+      }
+    } catch (error) {
+      console.error('创建新对局失败:', error);
+      alert('创建新对局失败');
+    }
+  };
+
+  // 开始游戏 - 创建第一条记录
+  const handleStartGame = async () => {
+    if (!matchId || !selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4) {
+      return;
+    }
+
+    try {
+      // 创建初始记录，使用选择的玩家
       const initialRecord: Partial<LbRecord> = {
-        matchId: nextMatchId,
-        matchName: newMatchName,
+        matchId,
+        matchName,
         gameRound: 1,
         gameTurn: 1,
-        playerId: players[0].id,
-        player2Id: players[1].id,
-        player3Id: players[2].id,
-        player4Id: players[3].id,
+        playerId: selectedPlayers.player1,
+        player2Id: selectedPlayers.player2,
+        player3Id: selectedPlayers.player3,
+        player4Id: selectedPlayers.player4,
         player1Count: 0,
         player1Action: '',
         isPlayer1Alive: 1,
@@ -491,15 +592,21 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       };
 
       const success = await createRecord(initialRecord);
-      if (success && onNewMatch) {
-        onNewMatch(nextMatchId, newMatchName);
-        alert(`新对局 "${newMatchName}" 创建成功！`);
+      if (success) {
+        // 重新加载数据
+        const updatedRecords = await fetchRecordsByMatchId(matchId);
+        setRecords(updatedRecords);
+        // 自动结算
+        if (updatedRecords.length > 0) {
+          calculateBulletStats(updatedRecords);
+        }
+        alert('游戏开始成功！');
       } else {
-        alert('创建新对局失败');
+        alert('开始游戏失败');
       }
     } catch (error) {
-      console.error('创建新对局失败:', error);
-      alert('创建新对局失败');
+      console.error('开始游戏失败:', error);
+      alert('开始游戏失败');
     }
   };
   
@@ -532,7 +639,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         </h2>
       </CardHeader>
       <CardContent>
-        {records.length > 0 ? (
+        {matchId ? (
           <>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -541,21 +648,109 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                     <th className="text-center py-3 px-4 font-bold text-foreground min-w-[100px]">游戏轮数</th>
                     <th className="text-center py-3 px-4 font-bold text-foreground min-w-[80px]">回合数</th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
-                      {getPlayerIcon(records[0].playerId)} {getPlayerName(records[0].playerId)}
+                      {isMatchSaved && records.length > 0 ? (
+                        <>
+                          {getPlayerIcon(records[0].playerId)} {getPlayerName(records[0].playerId)}
+                        </>
+                      ) : (
+                                                  <div className="flex items-center gap-1">
+                            <Select
+                              value={selectedPlayers.player1?.toString() || ""}
+                              onValueChange={(value) => handlePlayerChange('player1', parseInt(value))}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="选择" />
+                              </SelectTrigger>
+                            <SelectContent>
+                              {players.map((player) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.icon} {player.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
-                      {getPlayerIcon(records[0].player2Id)} {getPlayerName(records[0].player2Id)}
+                      {isMatchSaved && records.length > 0 ? (
+                        <>
+                          {getPlayerIcon(records[0].player2Id)} {getPlayerName(records[0].player2Id)}
+                        </>
+                      ) : (
+                                                  <div className="flex items-center gap-1">
+                            <Select
+                              value={selectedPlayers.player2?.toString() || ""}
+                              onValueChange={(value) => handlePlayerChange('player2', parseInt(value))}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="选择" />
+                              </SelectTrigger>
+                            <SelectContent>
+                              {players.map((player) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.icon} {player.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
-                      {getPlayerIcon(records[0].player3Id)} {getPlayerName(records[0].player3Id)}
+                      {isMatchSaved && records.length > 0 ? (
+                        <>
+                          {getPlayerIcon(records[0].player3Id)} {getPlayerName(records[0].player3Id)}
+                        </>
+                      ) : (
+                                                  <div className="flex items-center gap-1">
+                            <Select
+                              value={selectedPlayers.player3?.toString() || ""}
+                              onValueChange={(value) => handlePlayerChange('player3', parseInt(value))}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="选择" />
+                              </SelectTrigger>
+                            <SelectContent>
+                              {players.map((player) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.icon} {player.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </th>
                     <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
-                      {getPlayerIcon(records[0].player4Id)} {getPlayerName(records[0].player4Id)}
+                      {isMatchSaved && records.length > 0 ? (
+                        <>
+                          {getPlayerIcon(records[0].player4Id)} {getPlayerName(records[0].player4Id)}
+                        </>
+                      ) : (
+                                                  <div className="flex items-center gap-1">
+                            <Select
+                              value={selectedPlayers.player4?.toString() || ""}
+                              onValueChange={(value) => handlePlayerChange('player4', parseInt(value))}
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs">
+                                <SelectValue placeholder="选择" />
+                              </SelectTrigger>
+                            <SelectContent>
+                              {players.map((player) => (
+                                <SelectItem key={player.id} value={player.id.toString()}>
+                                  {player.icon} {player.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record, recordIndex) => (
+                  {records.length > 0 ? records.map((record, recordIndex) => (
                     <tr key={recordIndex} className="border-b border-border hover:bg-muted/30">
                       <td className="py-3 px-4 text-muted-foreground font-bold text-center">
                         {getRoundDisplay(record.gameRound)}
@@ -706,7 +901,27 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                        <div className="space-y-4">
+                          <p>已创建新对局，请选择玩家后开始游戏</p>
+                          <button 
+                            className="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:bg-green-400"
+                            onClick={handleStartGame}
+                            disabled={!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4}
+                          >
+                            开始游戏
+                          </button>
+                          {(!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4) && (
+                            <p className="text-xs text-red-500 mt-2">
+                              请先选择所有4个玩家
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -729,42 +944,33 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
           </>
         ) : (
           <div className="text-center text-muted-foreground py-12">
-            {matchId ? (
-              "此对局无记录数据"
-            ) : (
-              <div className="space-y-4">
-                <p>请从左侧选择一个对局，或创建新对局</p>
-                <button 
-                  className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={handleNewMatch}
-                  disabled={players.length < 4}
-                >
-                  新建对局
-                </button>
-                {players.length < 4 && (
-                  <p className="text-xs text-red-500 mt-2">
-                    需要至少4个玩家才能创建新对局
-                  </p>
-                )}
-              </div>
-            )}
+            <div className="space-y-4">
+              <p>请从左侧选择一个对局，或创建新对局</p>
+              <button 
+                className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                onClick={handleNewMatch}
+                disabled={players.length < 4}
+              >
+                新建对局
+              </button>
+            </div>
           </div>
         )}
         
-        {/* Control Buttons */}
+                {/* Control Buttons */}
         {matchId && (
           <div className="flex justify-center gap-4 mt-8 flex-wrap">
-            <button 
-              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+            <button
+              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:bg-primary/50"
               onClick={handleNewRound}
-              disabled={!records.length}
+              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
             >
               新一轮游戏
             </button>
-            <button 
-              className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+            <button
+              className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:bg-secondary/50"
               onClick={handleNewTurn}
-              disabled={!records.length}
+              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
             >
               新一回合
             </button>
