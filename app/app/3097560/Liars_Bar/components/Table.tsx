@@ -10,11 +10,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// 自定义样式，隐藏 number 输入框的上下调整按钮
+import { cn } from "@/lib/utils";
 import { getRecordsByMatchId } from '@/app/mock/data/lbRecordData';
 import { getPlayers } from "@/app/services/playerService";
 import { LbPlay } from "@/app/@types/lb_play";
 import { LbRecord } from "@/app/@types/lb_record";
-import { LbAction, LbActionMap } from "@/app/@types/lb_action_enum";
+import { LbAction } from "@/app/@types/lb_action_enum";
 
 interface TableProps {
   matchId: number | null;
@@ -280,7 +283,7 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
                             type="number"
                             min="0"
                             max="99"
-                            className="w-14 h-8 text-center"
+                            className={cn("w-14 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                             value={record.player1Count > 0 ? record.player1Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 1, e.target.value)}
                           />
@@ -316,7 +319,7 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
                             type="number"
                             min="0"
                             max="99"
-                            className="w-14 h-8 text-center"
+                            className={cn("w-14 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                             value={record.player2Count > 0 ? record.player2Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 2, e.target.value)}
                           />
@@ -352,7 +355,7 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
                             type="number"
                             min="0"
                             max="99"
-                            className="w-14 h-8 text-center"
+                            className={cn("w-14 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                             value={record.player3Count > 0 ? record.player3Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 3, e.target.value)}
                           />
@@ -388,7 +391,7 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
                             type="number"
                             min="0"
                             max="99"
-                            className="w-14 h-8 text-center"
+                            className={cn("w-14 h-8 text-center [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none")}
                             value={record.player4Count > 0 ? record.player4Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 4, e.target.value)}
                           />
