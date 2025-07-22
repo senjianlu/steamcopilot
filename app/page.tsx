@@ -11,7 +11,7 @@ export default function Home() {
             Steam Copilot
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            您的游戏伙伴，发现并探索精彩的 Steam 游戏世界
+            Steam 游戏助手，发现并探索精彩的游戏世界
           </p>
         </div>
 
@@ -23,9 +23,9 @@ export default function Home() {
                 <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-muted rounded-lg">
                   <span className="text-2xl">🍺</span>
                 </div>
-                <CardTitle className="text-center text-xl">Liar's Bar</CardTitle>
+                <CardTitle className="text-center text-xl">Liar's Bar - 德扑计算器</CardTitle>
                 <CardDescription className="text-center">
-                  一款充满策略与欺骗的多人在线游戏
+                  记录玩家子弹消耗以及是否存活
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -48,7 +48,7 @@ export default function Home() {
                   target="_blank"
                   className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
-                  进入骗子酒馆
+                  进入德扑计算器
                 </Link>
               </CardContent>
             </Card>
