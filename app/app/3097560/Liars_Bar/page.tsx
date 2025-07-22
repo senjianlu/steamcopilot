@@ -15,11 +15,6 @@ export default function LiarsBarPage() {
     setCurrentMatchName(matchName);
   };
 
-  // 处理对局名称变更
-  const handleMatchNameChange = (newName: string) => {
-    setCurrentMatchName(newName);
-  };
-
   // 处理新建对局
   const handleNewMatch = (matchId: number, matchName: string) => {
     setCurrentMatchId(matchId);
@@ -58,7 +53,6 @@ export default function LiarsBarPage() {
               <Table
                 matchId={currentMatchId}
                 matchName={currentMatchName}
-                onMatchNameChange={handleMatchNameChange}
                 onNewMatch={handleNewMatch}
               />
             </div>

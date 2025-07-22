@@ -148,17 +148,31 @@ const getNextMatchId = async (): Promise<number> => {
 interface TableProps {
   matchId: number | null;
   matchName: string;
-  onMatchNameChange: (newName: string) => void;
   onNewMatch?: (matchId: number, matchName: string) => void; // 新建对局回调
 }
 
-export default function Table({ matchId, matchName, onMatchNameChange, onNewMatch }: TableProps) {
+// 生成基于时间的对局名
+const generateMatchNameFromTime = (createdAt?: string): string => {
+  const date = createdAt ? new Date(createdAt) : new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}`;
+};
+
+export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [records, setRecords] = useState<LbRecord[]>([]);
   const [players, setPlayers] = useState<LbPlay[]>([]);
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editingTitle, setEditingTitle] = useState(matchName);
+
   const [showStats, setShowStats] = useState(false);
   const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number }[]>([]);
+
+  // 计算显示的对局名 - 基于第一条记录的时间或现有matchName
+  const displayMatchName = records.length > 0 
+    ? generateMatchNameFromTime(records[0].created_at) 
+    : matchName;
 
   // 加载数据
   useEffect(() => {
@@ -247,20 +261,7 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
     setShowStats(true);
   };
 
-  // 处理标题编辑
-  const handleTitleClick = () => {
-    setIsEditingTitle(true);
-    setEditingTitle(matchName);
-  };
-  
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingTitle(e.target.value);
-  };
-  
-  const handleTitleSave = () => {
-    onMatchNameChange(editingTitle);
-    setIsEditingTitle(false);
-  };
+
 
   // 获取玩家名称
   const getPlayerName = (playerId: number) => {
@@ -456,7 +457,14 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
     try {
       // 获取下一个match_id
       const nextMatchId = await getNextMatchId();
-      const newMatchName = `对局${nextMatchId}`;
+      // 使用当前时间作为对局名
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const newMatchName = `${year}-${month}-${day} ${hours}:${minutes}`;
       
       // 创建初始记录，使用前4个玩家
       const initialRecord: Partial<LbRecord> = {
@@ -518,27 +526,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
   return (
     <Card className="bg-card border border-border">
       <CardHeader>
-        {isEditingTitle ? (
-          <div className="flex items-center">
-            <input
-              type="text"
-              value={editingTitle}
-              onChange={handleTitleChange}
-              onBlur={handleTitleSave}
-              onKeyPress={(e) => e.key === 'Enter' && handleTitleSave()}
-              className="text-2xl text-center w-full bg-background border border-border rounded px-2 py-1"
-              autoFocus
-            />
-          </div>
-        ) : (
-          <h2 
-            className="text-2xl text-center cursor-pointer hover:text-primary"
-            onClick={handleTitleClick}
-          >
-            {matchName || "请选择对局"}
-            {matchId && <span className="text-xs text-muted-foreground ml-2">ID: {matchId}</span>}
-          </h2>
-        )}
+        <h2 className="text-2xl text-center">
+          {displayMatchName || "请选择对局"}
+          {matchId && <span className="text-xs text-muted-foreground ml-2">ID: {matchId}</span>}
+        </h2>
       </CardHeader>
       <CardContent>
         {records.length > 0 ? (
