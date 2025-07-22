@@ -2,6 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LbPlay } from "@/app/@types/lb_play";
+import { getPlayers } from "@/app/services/playerService";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface GameRecord {
   round: number;
@@ -13,6 +22,7 @@ interface SavedGameSession {
   id: number;
   date: string;
   playerNames: string[];
+  playerIds: number[];
   records: GameRecord[];
   bulletStats?: { name: string; bullets: number }[];
 }
@@ -21,6 +31,9 @@ export default function LiarsBarPage() {
   const [playerNames, setPlayerNames] = useState([
     "玩家一", "玩家二", "玩家三", "玩家四"
   ]);
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<(number | null)[]>([null, null, null, null]);
+  const [availablePlayers, setAvailablePlayers] = useState<LbPlay[]>([]);
+  const [playersLocked, setPlayersLocked] = useState<boolean[]>([false, false, false, false]);
   const [gameRecords, setGameRecords] = useState<GameRecord[]>([
     { round: 1, game: 1, players: ["4", "2", "8", "Winner"] },
     { round: 1, game: 2, players: ["", "1", "", "Winner"] },
@@ -28,7 +41,6 @@ export default function LiarsBarPage() {
   ]);
   const [currentRound, setCurrentRound] = useState(1);
   const [currentGame, setCurrentGame] = useState(3);
-  const [editingPlayer, setEditingPlayer] = useState<number | null>(null);
   const [editingCell, setEditingCell] = useState<{round: number, game: number, player: number} | null>(null);
   const [savedSessions, setSavedSessions] = useState<SavedGameSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
@@ -43,6 +55,17 @@ export default function LiarsBarPage() {
     }
   }, []);
 
+  // 获取可用玩家列表
+  useEffect(() => {
+    const fetchPlayers = async () => {
+      const response = await getPlayers();
+      if (response.success) {
+        setAvailablePlayers(response.data);
+      }
+    };
+    fetchPlayers();
+  }, []);
+
   // 保存数据到 localStorage
   const saveToLocalStorage = (sessions: SavedGameSession[]) => {
     localStorage.setItem('liarsBarSessions', JSON.stringify(sessions));
@@ -52,6 +75,28 @@ export default function LiarsBarPage() {
     const updatedNames = [...playerNames];
     updatedNames[index] = newName;
     setPlayerNames(updatedNames);
+  };
+
+  const handlePlayerSelect = (index: number, playerId: number) => {
+    const selectedPlayer = availablePlayers.find(p => p.id === playerId);
+    if (!selectedPlayer) return;
+
+    const updatedNames = [...playerNames];
+    const updatedIds = [...selectedPlayerIds];
+    const updatedLocked = [...playersLocked];
+
+    updatedNames[index] = selectedPlayer.name;
+    updatedIds[index] = playerId;
+    updatedLocked[index] = true;
+
+    setPlayerNames(updatedNames);
+    setSelectedPlayerIds(updatedIds);
+    setPlayersLocked(updatedLocked);
+  };
+
+  const getAvailablePlayersForSlot = (slotIndex: number) => {
+    const selectedIds = selectedPlayerIds.filter((id, idx) => idx !== slotIndex && id !== null);
+    return availablePlayers.filter(player => !selectedIds.includes(player.id));
   };
 
   const handleCellEdit = (round: number, game: number, playerIndex: number, value: string) => {
@@ -113,6 +158,7 @@ export default function LiarsBarPage() {
         second: '2-digit'
       }).replace(/\//g, '/'),
       playerNames: [...playerNames],
+      playerIds: [...selectedPlayerIds.map(id => id || 0)],
       records: [...gameRecords],
       bulletStats: stats
     };
@@ -128,6 +174,12 @@ export default function LiarsBarPage() {
     setPlayerNames(session.playerNames);
     setGameRecords(session.records);
     setSelectedSessionId(session.id);
+    
+    // 恢复玩家选择状态
+    if (session.playerIds) {
+      setSelectedPlayerIds(session.playerIds.map(id => id || null));
+      setPlayersLocked(session.playerIds.map(id => id !== null && id !== 0));
+    }
     
     // 计算当前轮数和回合数
     if (session.records.length > 0) {
@@ -208,26 +260,39 @@ export default function LiarsBarPage() {
                     <table className="w-full border-collapse">
                       <thead>
                         <tr className="border-b-2 border-border">
-                          <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[100px]">第几轮游戏</th>
-                          <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[80px]">第几回合</th>
+                          <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[100px]">游戏轮数</th>
+                          <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[80px]">回合</th>
                           {playerNames.map((name, index) => (
                             <th key={index} className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
-                              {editingPlayer === index ? (
-                                <input
-                                  type="text"
-                                  value={name}
-                                  onChange={(e) => handlePlayerNameChange(index, e.target.value)}
-                                  onBlur={() => setEditingPlayer(null)}
-                                  onKeyPress={(e) => e.key === 'Enter' && setEditingPlayer(null)}
-                                  className="bg-background border border-border rounded px-2 py-1 text-sm w-full"
-                                  autoFocus
-                                />
-                              ) : (
-                                <span
-                                  onClick={() => setEditingPlayer(index)}
-                                  className="cursor-pointer hover:bg-muted rounded px-2 py-1 transition-colors block"
+                              {!playersLocked[index] ? (
+                                <Select
+                                  onValueChange={(value) => {
+                                    const playerId = parseInt(value);
+                                    if (playerId) {
+                                      handlePlayerSelect(index, playerId);
+                                    }
+                                  }}
                                 >
-                                  {name}
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="选择玩家" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {getAvailablePlayersForSlot(index).map(player => (
+                                      <SelectItem key={player.id} value={player.id.toString()}>
+                                        <span className="flex items-center gap-2">
+                                          <span>{player.icon}</span>
+                                          <span>{player.name}</span>
+                                        </span>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <span className="flex items-center gap-2 px-2 py-1">
+                                  <span>
+                                    {availablePlayers.find(p => p.id === selectedPlayerIds[index])?.icon}
+                                  </span>
+                                  <span>{name}</span>
                                 </span>
                               )}
                             </th>
@@ -294,7 +359,7 @@ export default function LiarsBarPage() {
                   )}
 
                   {/* Control Buttons */}
-                  <div className="flex justify-center gap-4 mt-8">
+                  <div className="flex justify-center gap-4 mt-8 flex-wrap">
                     <button
                       onClick={startNewRound}
                       className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
