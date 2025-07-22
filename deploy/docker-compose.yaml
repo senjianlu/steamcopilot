@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  steamcopilot:
+    image: rabbir/steamcopilot:latest
+    container_name: steamcopilot
+    restart: unless-stopped
+    ports:
+    - 3000:3000
+    volumes:
+    - ./data:/app/data
+    networks:
+    - steamcopilot_network
+
+networks:
+  steamcopilot_network:
+    driver: bridge
