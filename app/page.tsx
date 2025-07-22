@@ -44,7 +44,7 @@ export default function Home() {
                   </div>
                 </div>
                 <Link 
-                  href="/3097560/Liars_Bar" 
+                  href="/app/3097560/Liars_Bar" 
                   target="_blank"
                   className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
                 >
