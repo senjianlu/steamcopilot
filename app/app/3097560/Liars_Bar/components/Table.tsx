@@ -174,7 +174,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [players, setPlayers] = useState<LbPlay[]>([]);
 
   const [showStats, setShowStats] = useState(false);
-  const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number }[]>([]);
+  const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number; deaths: number; wins: number }[]>([]);
 
   // 对局玩家选择状态
   const [selectedPlayers, setSelectedPlayers] = useState<{
@@ -246,14 +246,14 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 计算子弹统计
   const calculateBulletStats = (records: LbRecord[]) => {
     const playerIds = new Set<number>();
-    const statsMap = new Map<number, { name: string; bullets: number }>();
+    const statsMap = new Map<number, { name: string; bullets: number; deaths: number; wins: number }>();
     
-    // 收集所有玩家ID
+    // 收集所有玩家ID（不论存活状态）
     records.forEach(record => {
-      if (record.isPlayer1Alive === 1) playerIds.add(record.playerId);
-      if (record.isPlayer2Alive === 1) playerIds.add(record.player2Id);
-      if (record.isPlayer3Alive === 1) playerIds.add(record.player3Id);
-      if (record.isPlayer4Alive === 1) playerIds.add(record.player4Id);
+      playerIds.add(record.playerId);
+      playerIds.add(record.player2Id);
+      playerIds.add(record.player3Id);
+      playerIds.add(record.player4Id);
     });
     
     // 初始化统计
@@ -261,33 +261,71 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       const player = players.find(p => p.id === id);
       statsMap.set(id, { 
         name: player?.name || `玩家${id}`, 
-        bullets: 0 
+        bullets: 0,
+        deaths: 0,
+        wins: 0
       });
     });
     
-    // 计算子弹数
+    // 计算子弹数、DIE次数和获胜次数
     records.forEach(record => {
-      if (record.player1Count > 0 && statsMap.has(record.playerId)) {
+      // 计算玩家1的数据
+      if (statsMap.has(record.playerId)) {
         const stats = statsMap.get(record.playerId)!;
-        stats.bullets += record.player1Count;
+        if (record.player1Count > 0) {
+          stats.bullets += record.player1Count;
+        }
+        if (record.player1Action === LbAction.DIE) {
+          stats.deaths += 1;
+        }
+        if (record.player1Action === LbAction.WIN) {
+          stats.wins += 1;
+        }
         statsMap.set(record.playerId, stats);
       }
       
-      if (record.player2Count > 0 && statsMap.has(record.player2Id)) {
+      // 计算玩家2的数据
+      if (statsMap.has(record.player2Id)) {
         const stats = statsMap.get(record.player2Id)!;
-        stats.bullets += record.player2Count;
+        if (record.player2Count > 0) {
+          stats.bullets += record.player2Count;
+        }
+        if (record.player2Action === LbAction.DIE) {
+          stats.deaths += 1;
+        }
+        if (record.player2Action === LbAction.WIN) {
+          stats.wins += 1;
+        }
         statsMap.set(record.player2Id, stats);
       }
       
-      if (record.player3Count > 0 && statsMap.has(record.player3Id)) {
+      // 计算玩家3的数据
+      if (statsMap.has(record.player3Id)) {
         const stats = statsMap.get(record.player3Id)!;
-        stats.bullets += record.player3Count;
+        if (record.player3Count > 0) {
+          stats.bullets += record.player3Count;
+        }
+        if (record.player3Action === LbAction.DIE) {
+          stats.deaths += 1;
+        }
+        if (record.player3Action === LbAction.WIN) {
+          stats.wins += 1;
+        }
         statsMap.set(record.player3Id, stats);
       }
       
-      if (record.player4Count > 0 && statsMap.has(record.player4Id)) {
+      // 计算玩家4的数据
+      if (statsMap.has(record.player4Id)) {
         const stats = statsMap.get(record.player4Id)!;
-        stats.bullets += record.player4Count;
+        if (record.player4Count > 0) {
+          stats.bullets += record.player4Count;
+        }
+        if (record.player4Action === LbAction.DIE) {
+          stats.deaths += 1;
+        }
+        if (record.player4Action === LbAction.WIN) {
+          stats.wins += 1;
+        }
         statsMap.set(record.player4Id, stats);
       }
     });
@@ -631,14 +669,16 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   };
 
   return (
-    <Card className="bg-card border border-border">
-      <CardHeader>
-        <h2 className="text-2xl text-center">
-          {displayMatchName || "请选择对局"}
-          {matchId && <span className="text-xs text-muted-foreground ml-2">ID: {matchId}</span>}
-        </h2>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-6">
+      {/* 游戏对局记录表格 */}
+      <Card className="bg-card border border-border">
+        <CardHeader>
+          <h2 className="text-2xl text-center">
+            {displayMatchName || "请选择对局"}
+            {matchId && <span className="text-xs text-muted-foreground ml-2">ID: {matchId}</span>}
+          </h2>
+        </CardHeader>
+        <CardContent>
         {matchId ? (
           <>
             <div className="overflow-x-auto">
@@ -647,20 +687,20 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                   <tr className="border-b-2 border-border">
                     <th className="text-center py-3 px-4 font-bold text-foreground min-w-[100px]">游戏轮数</th>
                     <th className="text-center py-3 px-4 font-bold text-foreground min-w-[80px]">回合数</th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
+                                        <th className="text-center py-3 px-4 font-semibold text-foreground min-w-[120px]">
                       {isMatchSaved && records.length > 0 ? (
                         <>
                           {getPlayerIcon(records[0].playerId)} {getPlayerName(records[0].playerId)}
                         </>
                       ) : (
-                                                  <div className="flex items-center gap-1">
-                            <Select
-                              value={selectedPlayers.player1?.toString() || ""}
-                              onValueChange={(value) => handlePlayerChange('player1', parseInt(value))}
-                            >
-                              <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="选择" />
-                              </SelectTrigger>
+                        <div className="flex items-center justify-center gap-1">
+                          <Select
+                            value={selectedPlayers.player1?.toString() || ""}
+                            onValueChange={(value) => handlePlayerChange('player1', parseInt(value))}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="选择" />
+                            </SelectTrigger>
                             <SelectContent>
                               {players.map((player) => (
                                 <SelectItem key={player.id} value={player.id.toString()}>
@@ -672,20 +712,20 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         </div>
                       )}
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
+                                        <th className="text-center py-3 px-4 font-semibold text-foreground min-w-[120px]">
                       {isMatchSaved && records.length > 0 ? (
                         <>
                           {getPlayerIcon(records[0].player2Id)} {getPlayerName(records[0].player2Id)}
                         </>
                       ) : (
-                                                  <div className="flex items-center gap-1">
-                            <Select
-                              value={selectedPlayers.player2?.toString() || ""}
-                              onValueChange={(value) => handlePlayerChange('player2', parseInt(value))}
-                            >
-                              <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="选择" />
-                              </SelectTrigger>
+                        <div className="flex items-center justify-center gap-1">
+                          <Select
+                            value={selectedPlayers.player2?.toString() || ""}
+                            onValueChange={(value) => handlePlayerChange('player2', parseInt(value))}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="选择" />
+                            </SelectTrigger>
                             <SelectContent>
                               {players.map((player) => (
                                 <SelectItem key={player.id} value={player.id.toString()}>
@@ -697,20 +737,20 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         </div>
                       )}
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
+                                        <th className="text-center py-3 px-4 font-semibold text-foreground min-w-[120px]">
                       {isMatchSaved && records.length > 0 ? (
                         <>
                           {getPlayerIcon(records[0].player3Id)} {getPlayerName(records[0].player3Id)}
                         </>
                       ) : (
-                                                  <div className="flex items-center gap-1">
-                            <Select
-                              value={selectedPlayers.player3?.toString() || ""}
-                              onValueChange={(value) => handlePlayerChange('player3', parseInt(value))}
-                            >
-                              <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="选择" />
-                              </SelectTrigger>
+                        <div className="flex items-center justify-center gap-1">
+                          <Select
+                            value={selectedPlayers.player3?.toString() || ""}
+                            onValueChange={(value) => handlePlayerChange('player3', parseInt(value))}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="选择" />
+                            </SelectTrigger>
                             <SelectContent>
                               {players.map((player) => (
                                 <SelectItem key={player.id} value={player.id.toString()}>
@@ -722,20 +762,20 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         </div>
                       )}
                     </th>
-                    <th className="text-left py-3 px-4 font-semibold text-foreground min-w-[120px]">
+                                        <th className="text-center py-3 px-4 font-semibold text-foreground min-w-[120px]">
                       {isMatchSaved && records.length > 0 ? (
                         <>
                           {getPlayerIcon(records[0].player4Id)} {getPlayerName(records[0].player4Id)}
                         </>
                       ) : (
-                                                  <div className="flex items-center gap-1">
-                            <Select
-                              value={selectedPlayers.player4?.toString() || ""}
-                              onValueChange={(value) => handlePlayerChange('player4', parseInt(value))}
-                            >
-                              <SelectTrigger className="w-32 h-8 text-xs">
-                                <SelectValue placeholder="选择" />
-                              </SelectTrigger>
+                        <div className="flex items-center justify-center gap-1">
+                          <Select
+                            value={selectedPlayers.player4?.toString() || ""}
+                            onValueChange={(value) => handlePlayerChange('player4', parseInt(value))}
+                          >
+                            <SelectTrigger className="w-32 h-8 text-xs">
+                              <SelectValue placeholder="选择" />
+                            </SelectTrigger>
                             <SelectContent>
                               {players.map((player) => (
                                 <SelectItem key={player.id} value={player.id.toString()}>
@@ -926,21 +966,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
               </table>
             </div>
 
-            {/* Statistics Display */}
-            {showStats && bulletStats.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-border">
-                <h3 className="text-lg font-semibold text-foreground mb-4 text-center">子弹消耗统计</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {bulletStats.map((stat, index) => (
-                    <div key={index} className="bg-muted/30 rounded-lg p-4 text-center">
-                      <div className="font-semibold text-foreground">{stat.name}</div>
-                      <div className="text-2xl font-bold text-primary mt-1">{stat.bullets}</div>
-                      <div className="text-xs text-muted-foreground">发子弹</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+
           </>
         ) : (
           <div className="text-center text-muted-foreground py-12">
@@ -956,35 +982,78 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
             </div>
           </div>
         )}
-        
-                {/* Control Buttons */}
-        {matchId && (
-          <div className="flex justify-center gap-4 mt-8 flex-wrap">
-            <button
-              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:bg-primary/50"
-              onClick={handleNewRound}
-              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
-            >
-              新一轮游戏
-            </button>
-            <button
-              className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:bg-secondary/50"
-              onClick={handleNewTurn}
-              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
-            >
-              新一回合
-            </button>
+        </CardContent>
+      </Card>
+      
+      {/* Control Buttons */}
+      {matchId && records.length > 0 && (
+        <div className="flex justify-end gap-4 flex-wrap">
+          <button
+            className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:bg-primary/50"
+            onClick={handleNewRound}
+            disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
+          >
+            新一轮游戏
+          </button>
+          <button
+            className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:bg-secondary/50"
+            onClick={handleNewTurn}
+            disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
+          >
+            新一回合
+          </button>
 
-            <button 
-              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
-              onClick={handleSaveRecords}
-              disabled={!records.length}
-            >
-              保存
-            </button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <button 
+            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+            onClick={handleSaveRecords}
+            disabled={!records.length}
+          >
+            保存
+          </button>
+        </div>
+      )}
+
+      {/* 游戏数据统计 */}
+      {showStats && bulletStats.length > 0 && (
+        <Card className="bg-gray-50 border border-border">
+          <CardHeader className="pb-2">
+            <h3 className="text-lg font-semibold text-foreground text-center">游戏数据统计</h3>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {bulletStats.map((stat, index) => {
+                // 根据玩家ID查找对应的图标
+                const playerId = players.find(p => p.name === stat.name)?.id;
+                const playerIcon = playerId ? getPlayerIcon(playerId) : '';
+                
+                return (
+                  <Card key={index} className="bg-muted/30 border-muted">
+                    <CardContent className="p-2 text-center">
+                      <div className="font-semibold text-foreground mb-1">
+                        {playerIcon} {stat.name}
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">子弹消耗:</span>
+                          <span className="text-lg font-bold text-primary">{stat.bullets}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">死亡:</span>
+                          <span className="text-lg font-bold text-red-600">{stat.deaths}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">获胜:</span>
+                          <span className="text-lg font-bold text-green-600">{stat.wins}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 }
