@@ -306,6 +306,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
     }
     
     setRecords(updatedRecords);
+    // 数据变更后自动结算
+    if (updatedRecords.length > 0) {
+      calculateBulletStats(updatedRecords);
+    }
   };
 
   // 处理玩家行动变更
@@ -334,6 +338,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
     }
     
     setRecords(updatedRecords);
+    // 数据变更后自动结算
+    if (updatedRecords.length > 0) {
+      calculateBulletStats(updatedRecords);
+    }
   };
 
   // 保存所有记录到数据库
@@ -347,6 +355,8 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
       const successCount = results.filter(Boolean).length;
       if (successCount === records.length) {
         alert('所有记录保存成功！');
+        // 自动结算
+        calculateBulletStats(records);
       } else {
         alert(`部分记录保存失败，成功保存 ${successCount}/${records.length} 条记录`);
       }
@@ -381,6 +391,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
         // 重新加载数据
         const updatedRecords = await fetchRecordsByMatchId(matchId);
         setRecords(updatedRecords);
+        // 自动结算
+        if (updatedRecords.length > 0) {
+          calculateBulletStats(updatedRecords);
+        }
         alert('新一轮游戏创建成功！');
       } else {
         alert('创建新一轮游戏失败');
@@ -416,6 +430,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
         // 重新加载数据
         const updatedRecords = await fetchRecordsByMatchId(matchId);
         setRecords(updatedRecords);
+        // 自动结算
+        if (updatedRecords.length > 0) {
+          calculateBulletStats(updatedRecords);
+        }
         alert('新一回合创建成功！');
       } else {
         alert('创建新一回合失败');
@@ -426,13 +444,7 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
     }
   };
 
-  // 结算统计
-  const handleSettlement = () => {
-    if (records.length > 0) {
-      calculateBulletStats(records);
-      alert('结算完成，请查看下方统计数据');
-    }
-  };
+
 
   // 新建对局
   const handleNewMatch = async () => {
@@ -765,13 +777,7 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
             >
               新一回合
             </button>
-            <button 
-              className="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:bg-green-400"
-              onClick={handleSettlement}
-              disabled={!records.length}
-            >
-              结算
-            </button>
+
             <button 
               className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
               onClick={handleSaveRecords}
