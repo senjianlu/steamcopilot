@@ -13,19 +13,146 @@ import {
 
 // 自定义样式，隐藏 number 输入框的上下调整按钮
 import { cn } from "@/lib/utils";
-import { getRecordsByMatchId } from '@/app/mock/data/lbRecordData';
-import { getPlayers } from "@/app/services/playerService";
+// 使用真实的API调用
 import { LbPlay } from "@/app/types/lb_play";
 import { LbRecord } from "@/app/types/lb_record";
 import { LbAction } from "@/app/types/lb_action_enum";
+
+// API调用函数
+const fetchPlayers = async (): Promise<{ success: boolean; data: LbPlay[] }> => {
+  try {
+    const response = await fetch('/api/app/3097560/Liars_Bar/lbPlay');
+    if (!response.ok) {
+      throw new Error('Failed to fetch players');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching players:', error);
+    return { success: false, data: [] };
+  }
+};
+
+const fetchRecordsByMatchId = async (matchId: number): Promise<LbRecord[]> => {
+  try {
+    const response = await fetch(`/api/app/3097560/Liars_Bar/lbRecord?matchId=${matchId}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch records');
+    }
+    const result = await response.json();
+    return result.success ? result.data : [];
+  } catch (error) {
+    console.error('Error fetching records:', error);
+    return [];
+  }
+};
+
+const updateRecord = async (record: LbRecord): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/app/3097560/Liars_Bar/lbRecord', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        uuid: record.uuid,
+        matchId: record.matchId,
+        matchName: record.matchName,
+        gameRound: record.gameRound,
+        gameTurn: record.gameTurn,
+        playerId: record.playerId,
+        player1Count: record.player1Count,
+        player1Action: record.player1Action,
+        isPlayer1Alive: record.isPlayer1Alive,
+        player2Id: record.player2Id,
+        player2Count: record.player2Count,
+        player2Action: record.player2Action,
+        isPlayer2Alive: record.isPlayer2Alive,
+        player3Id: record.player3Id,
+        player3Count: record.player3Count,
+        player3Action: record.player3Action,
+        isPlayer3Alive: record.isPlayer3Alive,
+        player4Id: record.player4Id,
+        player4Count: record.player4Count,
+        player4Action: record.player4Action,
+        isPlayer4Alive: record.isPlayer4Alive,
+      }),
+    });
+    
+    const result = await response.json();
+    return result.success || false;
+  } catch (error) {
+    console.error('Error updating record:', error);
+    return false;
+  }
+};
+
+const createRecord = async (record: Partial<LbRecord>): Promise<boolean> => {
+  try {
+    const response = await fetch('/api/app/3097560/Liars_Bar/lbRecord', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        matchId: record.matchId,
+        matchName: record.matchName,
+        gameRound: record.gameRound,
+        gameTurn: record.gameTurn,
+        playerId: record.playerId,
+        player1Count: record.player1Count || 0,
+        player1Action: record.player1Action || '',
+        isPlayer1Alive: record.isPlayer1Alive !== undefined ? record.isPlayer1Alive : true,
+        player2Id: record.player2Id,
+        player2Count: record.player2Count || 0,
+        player2Action: record.player2Action || '',
+        isPlayer2Alive: record.isPlayer2Alive !== undefined ? record.isPlayer2Alive : true,
+        player3Id: record.player3Id,
+        player3Count: record.player3Count || 0,
+        player3Action: record.player3Action || '',
+        isPlayer3Alive: record.isPlayer3Alive !== undefined ? record.isPlayer3Alive : true,
+        player4Id: record.player4Id,
+        player4Count: record.player4Count || 0,
+        player4Action: record.player4Action || '',
+        isPlayer4Alive: record.isPlayer4Alive !== undefined ? record.isPlayer4Alive : true,
+      }),
+    });
+    
+    const result = await response.json();
+    return result.success || false;
+  } catch (error) {
+    console.error('Error creating record:', error);
+    return false;
+  }
+};
+
+const getNextMatchId = async (): Promise<number> => {
+  try {
+    const response = await fetch('/api/app/3097560/Liars_Bar/matches');
+    if (!response.ok) {
+      throw new Error('Failed to fetch matches');
+    }
+    const result = await response.json();
+    const matches = result.success ? result.data : [];
+    
+    // 找到最大的match_id并加1，如果没有数据则从1开始
+    const maxId = matches.length > 0 
+      ? Math.max(...matches.map((m: any) => m.match_id)) 
+      : 0;
+    return maxId + 1;
+  } catch (error) {
+    console.error('Error getting next match ID:', error);
+    return Date.now(); // 备用方案：使用时间戳
+  }
+};
 
 interface TableProps {
   matchId: number | null;
   matchName: string;
   onMatchNameChange: (newName: string) => void;
+  onNewMatch?: (matchId: number, matchName: string) => void; // 新建对局回调
 }
 
-export default function Table({ matchId, matchName, onMatchNameChange }: TableProps) {
+export default function Table({ matchId, matchName, onMatchNameChange, onNewMatch }: TableProps) {
   const [records, setRecords] = useState<LbRecord[]>([]);
   const [players, setPlayers] = useState<LbPlay[]>([]);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -36,13 +163,17 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
   // 加载数据
   useEffect(() => {
     if (matchId) {
-      const matchRecords = getRecordsByMatchId(matchId);
-      setRecords(matchRecords);
+      const loadRecords = async () => {
+        const matchRecords = await fetchRecordsByMatchId(matchId);
+        setRecords(matchRecords);
+        
+        // 如果有记录，计算统计数据
+        if (matchRecords.length > 0) {
+          calculateBulletStats(matchRecords);
+        }
+      };
       
-      // 如果有记录，计算统计数据
-      if (matchRecords.length > 0) {
-        calculateBulletStats(matchRecords);
-      }
+      loadRecords();
     } else {
       setRecords([]);
       setShowStats(false);
@@ -51,14 +182,14 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
   
   // 加载玩家数据
   useEffect(() => {
-    const fetchPlayers = async () => {
-      const response = await getPlayers();
+    const loadPlayers = async () => {
+      const response = await fetchPlayers();
       if (response.success) {
         setPlayers(response.data);
       }
     };
     
-    fetchPlayers();
+    loadPlayers();
   }, []);
   
   // 计算子弹统计
@@ -200,6 +331,153 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
     }
     
     setRecords(updatedRecords);
+  };
+
+  // 保存所有记录到数据库
+  const handleSaveRecords = async () => {
+    if (!records.length || !matchId) return;
+
+    try {
+      const savePromises = records.map(record => updateRecord(record));
+      const results = await Promise.all(savePromises);
+      
+      const successCount = results.filter(Boolean).length;
+      if (successCount === records.length) {
+        alert('所有记录保存成功！');
+      } else {
+        alert(`部分记录保存失败，成功保存 ${successCount}/${records.length} 条记录`);
+      }
+    } catch (error) {
+      console.error('保存记录失败:', error);
+      alert('保存记录失败，请重试');
+    }
+  };
+
+  // 新一轮游戏
+  const handleNewRound = async () => {
+    if (!matchId || !records.length) return;
+
+    // 获取最后一条记录作为模板
+    const lastRecord = records[records.length - 1];
+    const newRound = lastRecord.gameRound + 1;
+
+    const newRecord: Partial<LbRecord> = {
+      matchId,
+      matchName,
+      gameRound: newRound,
+      gameTurn: 1,
+      playerId: lastRecord.playerId,
+      player2Id: lastRecord.player2Id,
+      player3Id: lastRecord.player3Id,
+      player4Id: lastRecord.player4Id,
+    };
+
+    try {
+      const success = await createRecord(newRecord);
+      if (success) {
+        // 重新加载数据
+        const updatedRecords = await fetchRecordsByMatchId(matchId);
+        setRecords(updatedRecords);
+        alert('新一轮游戏创建成功！');
+      } else {
+        alert('创建新一轮游戏失败');
+      }
+    } catch (error) {
+      console.error('创建新一轮游戏失败:', error);
+      alert('创建新一轮游戏失败');
+    }
+  };
+
+  // 新一回合
+  const handleNewTurn = async () => {
+    if (!matchId || !records.length) return;
+
+    // 获取最后一条记录作为模板
+    const lastRecord = records[records.length - 1];
+    const newTurn = lastRecord.gameTurn + 1;
+
+    const newRecord: Partial<LbRecord> = {
+      matchId,
+      matchName,
+      gameRound: lastRecord.gameRound,
+      gameTurn: newTurn,
+      playerId: lastRecord.playerId,
+      player2Id: lastRecord.player2Id,
+      player3Id: lastRecord.player3Id,
+      player4Id: lastRecord.player4Id,
+    };
+
+    try {
+      const success = await createRecord(newRecord);
+      if (success) {
+        // 重新加载数据
+        const updatedRecords = await fetchRecordsByMatchId(matchId);
+        setRecords(updatedRecords);
+        alert('新一回合创建成功！');
+      } else {
+        alert('创建新一回合失败');
+      }
+    } catch (error) {
+      console.error('创建新一回合失败:', error);
+      alert('创建新一回合失败');
+    }
+  };
+
+  // 结算统计
+  const handleSettlement = () => {
+    if (records.length > 0) {
+      calculateBulletStats(records);
+      alert('结算完成，请查看下方统计数据');
+    }
+  };
+
+  // 新建对局
+  const handleNewMatch = async () => {
+    if (players.length < 4) {
+      alert('请先创建至少4个玩家才能开始新对局');
+      return;
+    }
+
+    try {
+      // 获取下一个match_id
+      const nextMatchId = await getNextMatchId();
+      const newMatchName = `对局${nextMatchId}`;
+      
+      // 创建初始记录，使用前4个玩家
+      const initialRecord: Partial<LbRecord> = {
+        matchId: nextMatchId,
+        matchName: newMatchName,
+        gameRound: 1,
+        gameTurn: 1,
+        playerId: players[0].id,
+        player2Id: players[1].id,
+        player3Id: players[2].id,
+        player4Id: players[3].id,
+        player1Count: 0,
+        player1Action: '',
+        isPlayer1Alive: 1,
+        player2Count: 0,
+        player2Action: '',
+        isPlayer2Alive: 1,
+        player3Count: 0,
+        player3Action: '',
+        isPlayer3Alive: 1,
+        player4Count: 0,
+        player4Action: '',
+        isPlayer4Alive: 1,
+      };
+
+      const success = await createRecord(initialRecord);
+      if (success && onNewMatch) {
+        onNewMatch(nextMatchId, newMatchName);
+        alert(`新对局 "${newMatchName}" 创建成功！`);
+      } else {
+        alert('创建新对局失败');
+      }
+    } catch (error) {
+      console.error('创建新对局失败:', error);
+      alert('创建新对局失败');
+    }
   };
   
   // 获取行动对应的图标
@@ -445,23 +723,57 @@ export default function Table({ matchId, matchName, onMatchNameChange }: TablePr
           </>
         ) : (
           <div className="text-center text-muted-foreground py-12">
-            {matchId ? "此对局无记录数据" : "请从左侧选择一个对局"}
+            {matchId ? (
+              "此对局无记录数据"
+            ) : (
+              <div className="space-y-4">
+                <p>请从左侧选择一个对局，或创建新对局</p>
+                <button 
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={handleNewMatch}
+                  disabled={players.length < 4}
+                >
+                  新建对局
+                </button>
+                {players.length < 4 && (
+                  <p className="text-xs text-red-500 mt-2">
+                    需要至少4个玩家才能创建新对局
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
         
         {/* Control Buttons */}
         {matchId && (
           <div className="flex justify-center gap-4 mt-8 flex-wrap">
-            <button className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors">
+            <button 
+              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              onClick={handleNewRound}
+              disabled={!records.length}
+            >
               新一轮游戏
             </button>
-            <button className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors">
+            <button 
+              className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+              onClick={handleNewTurn}
+              disabled={!records.length}
+            >
               新一回合
             </button>
-            <button className="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors">
+            <button 
+              className="inline-flex items-center justify-center rounded-md bg-green-600 px-6 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors disabled:bg-green-400"
+              onClick={handleSettlement}
+              disabled={!records.length}
+            >
               结算
             </button>
-            <button className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors">
+            <button 
+              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              onClick={handleSaveRecords}
+              disabled={!records.length}
+            >
               保存
             </button>
           </div>

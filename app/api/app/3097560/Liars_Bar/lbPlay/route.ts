@@ -62,43 +62,42 @@ export async function POST(request: NextRequest) {
     const db = await getDatabase();
     const body = await request.json();
     
-    const { name, icon } = body;
+    const { name, icon = '' } = body;
     
-    // 验证必需字段
+    // 验证必填字段
     if (!name) {
       return NextResponse.json(
-        { error: '玩家姓名不能为空' },
+        { error: '玩家名称不能为空' },
         { status: 400 }
       );
     }
 
-    // 检查玩家姓名是否已存在
+    // 检查名称是否已存在
     const existingPlayer = await db.get(
       'SELECT id FROM lb_play WHERE name = ?',
       [name]
     );
-    
+
     if (existingPlayer) {
       return NextResponse.json(
-        { error: '玩家姓名已存在' },
+        { error: '玩家名称已存在' },
         { status: 409 }
       );
     }
 
-    // 插入新玩家
+    // 创建新玩家
     const result = await db.run(
-      'INSERT INTO lb_play (name, icon) VALUES (?, ?)',
-      [name, icon || null]
+      'INSERT INTO lb_play (name, icon, created_at, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+      [name, icon]
     );
 
-    // 获取刚创建的玩家信息
     const newPlayer = await db.get(
       'SELECT * FROM lb_play WHERE id = ?',
       [result.lastID]
     );
 
-    return NextResponse.json({
-      data: newPlayer,
+    return NextResponse.json({ 
+      data: newPlayer, 
       success: true,
       message: '玩家创建成功'
     }, { status: 201 });
@@ -119,19 +118,12 @@ export async function PUT(request: NextRequest) {
     const db = await getDatabase();
     const body = await request.json();
     
-    const { id, name, icon } = body;
+    const { id, name, icon = '' } = body;
     
-    // 验证必需字段
-    if (!id) {
+    // 验证必填字段
+    if (!id || !name) {
       return NextResponse.json(
-        { error: '玩家ID不能为空' },
-        { status: 400 }
-      );
-    }
-
-    if (!name) {
-      return NextResponse.json(
-        { error: '玩家姓名不能为空' },
+        { error: 'ID和玩家名称不能为空' },
         { status: 400 }
       );
     }
@@ -141,7 +133,7 @@ export async function PUT(request: NextRequest) {
       'SELECT * FROM lb_play WHERE id = ?',
       [id]
     );
-    
+
     if (!existingPlayer) {
       return NextResponse.json(
         { error: '玩家不存在' },
@@ -149,15 +141,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // 检查新姓名是否与其他玩家重复
-    const duplicatePlayer = await db.get(
+    // 检查名称是否与其他玩家冲突
+    const nameConflict = await db.get(
       'SELECT id FROM lb_play WHERE name = ? AND id != ?',
       [name, id]
     );
-    
-    if (duplicatePlayer) {
+
+    if (nameConflict) {
       return NextResponse.json(
-        { error: '玩家姓名已存在' },
+        { error: '玩家名称已被其他玩家使用' },
         { status: 409 }
       );
     }
@@ -165,25 +157,24 @@ export async function PUT(request: NextRequest) {
     // 更新玩家信息
     await db.run(
       'UPDATE lb_play SET name = ?, icon = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-      [name, icon || null, id]
+      [name, icon, id]
     );
 
-    // 获取更新后的玩家信息
     const updatedPlayer = await db.get(
       'SELECT * FROM lb_play WHERE id = ?',
       [id]
     );
 
-    return NextResponse.json({
-      data: updatedPlayer,
+    return NextResponse.json({ 
+      data: updatedPlayer, 
       success: true,
       message: '玩家信息更新成功'
     });
 
   } catch (error: any) {
-    console.error('更新玩家信息失败:', error);
+    console.error('更新玩家失败:', error);
     return NextResponse.json(
-      { error: '更新玩家信息失败', details: error.message },
+      { error: '更新玩家失败', details: error.message },
       { status: 500 }
     );
   }
@@ -199,7 +190,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) {
       return NextResponse.json(
-        { error: '玩家ID不能为空' },
+        { error: '请提供玩家ID' },
         { status: 400 }
       );
     }
@@ -209,7 +200,7 @@ export async function DELETE(request: NextRequest) {
       'SELECT * FROM lb_play WHERE id = ?',
       [id]
     );
-    
+
     if (!existingPlayer) {
       return NextResponse.json(
         { error: '玩家不存在' },
@@ -217,24 +208,26 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 检查是否有相关的游戏记录
-    const recordCount = await db.get(
-      `SELECT COUNT(*) as count FROM lb_record 
-       WHERE player_id = ? OR player2_id = ? OR player3_id = ? OR player4_id = ?`,
+    // 检查是否有关联的游戏记录
+    const hasRecords = await db.get(
+      'SELECT uuid FROM lb_record WHERE playerId = ? OR player2Id = ? OR player3Id = ? OR player4Id = ? LIMIT 1',
       [id, id, id, id]
     );
 
-    if (recordCount.count > 0) {
+    if (hasRecords) {
       return NextResponse.json(
-        { error: '该玩家有关联的游戏记录，无法删除' },
+        { error: '无法删除玩家，存在关联的游戏记录' },
         { status: 409 }
       );
     }
 
     // 删除玩家
-    await db.run('DELETE FROM lb_play WHERE id = ?', [id]);
+    await db.run(
+      'DELETE FROM lb_play WHERE id = ?',
+      [id]
+    );
 
-    return NextResponse.json({
+    return NextResponse.json({ 
       success: true,
       message: '玩家删除成功'
     });
@@ -246,4 +239,4 @@ export async function DELETE(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+} 

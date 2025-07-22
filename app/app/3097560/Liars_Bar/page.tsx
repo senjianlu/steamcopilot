@@ -7,6 +7,7 @@ import Table from "./components/Table";
 export default function LiarsBarPage() {
   const [currentMatchId, setCurrentMatchId] = useState<number | null>(null);
   const [currentMatchName, setCurrentMatchName] = useState<string>("请选择对局");
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
 
   // 处理选择对局
   const handleSelectMatch = (matchId: number, matchName: string) => {
@@ -17,6 +18,14 @@ export default function LiarsBarPage() {
   // 处理对局名称变更
   const handleMatchNameChange = (newName: string) => {
     setCurrentMatchName(newName);
+  };
+
+  // 处理新建对局
+  const handleNewMatch = (matchId: number, matchName: string) => {
+    setCurrentMatchId(matchId);
+    setCurrentMatchName(matchName);
+    // 触发History组件刷新
+    setRefreshTrigger(prev => prev + 1);
   };
 
   return (
@@ -40,6 +49,7 @@ export default function LiarsBarPage() {
               <History
                 selectedMatchId={currentMatchId}
                 onSelectMatch={handleSelectMatch}
+                refreshTrigger={refreshTrigger}
               />
             </div>
 
@@ -49,6 +59,7 @@ export default function LiarsBarPage() {
                 matchId={currentMatchId}
                 matchName={currentMatchName}
                 onMatchNameChange={handleMatchNameChange}
+                onNewMatch={handleNewMatch}
               />
             </div>
           </div>

@@ -1,5 +1,6 @@
 export class LbRecord {
   constructor(
+    public uuid: string,           // UUID主键
     public matchId: number,        // 比赛ID
     public matchName: string,      // 比赛名称
     public gameRound: number,      // 游戏轮数
@@ -24,5 +25,8 @@ export class LbRecord {
     public player4Count: number,
     public player4Action: string,
     public isPlayer4Alive: number,
+    // 时间戳字段
+    public created_at?: string,
+    public updated_at?: string,
   ) {}
 }
