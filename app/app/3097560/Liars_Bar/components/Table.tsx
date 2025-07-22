@@ -273,7 +273,10 @@ export default function Table({ matchId, matchName, onMatchNameChange, onNewMatc
   };
 
   // 获取中文轮次显示
-  const getRoundDisplay = (round: number) => {
+  const getRoundDisplay = (round: number | undefined | null) => {
+    if (round === undefined || round === null) {
+      return "1"; // 默认值
+    }
     const chineseNumbers = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
     return chineseNumbers[round] || round.toString();
   };

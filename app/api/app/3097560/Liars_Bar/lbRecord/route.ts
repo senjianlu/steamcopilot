@@ -37,8 +37,35 @@ export async function GET(request: NextRequest) {
           { status: 404 }
         );
       }
+
+      // 将数据库的snake_case字段名转换为camelCase
+      const camelCaseRecord = {
+        uuid: record.uuid,
+        matchId: record.match_id,
+        matchName: record.match_name,
+        gameRound: record.game_round,
+        gameTurn: record.game_turn,
+        playerId: record.player_id,
+        player1Count: record.player1_count,
+        player1Action: record.player1_action,
+        isPlayer1Alive: record.is_player1_alive,
+        player2Id: record.player2_id,
+        player2Count: record.player2_count,
+        player2Action: record.player2_action,
+        isPlayer2Alive: record.is_player2_alive,
+        player3Id: record.player3_id,
+        player3Count: record.player3_count,
+        player3Action: record.player3_action,
+        isPlayer3Alive: record.is_player3_alive,
+        player4Id: record.player4_id,
+        player4Count: record.player4_count,
+        player4Action: record.player4_action,
+        isPlayer4Alive: record.is_player4_alive,
+        created_at: record.created_at,
+        updated_at: record.updated_at
+      };
       
-      return NextResponse.json({ data: record, success: true });
+      return NextResponse.json({ data: camelCaseRecord, success: true });
     } else if (matchId) {
       // 获取特定比赛的所有记录
       const records = await db.all(
@@ -53,9 +80,36 @@ export async function GET(request: NextRequest) {
         'SELECT COUNT(*) as count FROM lb_record WHERE match_id = ?',
         [matchId]
       );
+
+      // 将数据库的snake_case字段名转换为camelCase
+      const camelCaseRecords = records.map(record => ({
+        uuid: record.uuid,
+        matchId: record.match_id,
+        matchName: record.match_name,
+        gameRound: record.game_round,
+        gameTurn: record.game_turn,
+        playerId: record.player_id,
+        player1Count: record.player1_count,
+        player1Action: record.player1_action,
+        isPlayer1Alive: record.is_player1_alive,
+        player2Id: record.player2_id,
+        player2Count: record.player2_count,
+        player2Action: record.player2_action,
+        isPlayer2Alive: record.is_player2_alive,
+        player3Id: record.player3_id,
+        player3Count: record.player3_count,
+        player3Action: record.player3_action,
+        isPlayer3Alive: record.is_player3_alive,
+        player4Id: record.player4_id,
+        player4Count: record.player4_count,
+        player4Action: record.player4_action,
+        isPlayer4Alive: record.is_player4_alive,
+        created_at: record.created_at,
+        updated_at: record.updated_at
+      }));
       
       return NextResponse.json({ 
-        data: records, 
+        data: camelCaseRecords, 
         success: true,
         pagination: {
           page,
@@ -74,9 +128,36 @@ export async function GET(request: NextRequest) {
       );
 
       const totalCount = await db.get('SELECT COUNT(*) as count FROM lb_record');
+
+      // 将数据库的snake_case字段名转换为camelCase
+      const camelCaseRecords = records.map(record => ({
+        uuid: record.uuid,
+        matchId: record.match_id,
+        matchName: record.match_name,
+        gameRound: record.game_round,
+        gameTurn: record.game_turn,
+        playerId: record.player_id,
+        player1Count: record.player1_count,
+        player1Action: record.player1_action,
+        isPlayer1Alive: record.is_player1_alive,
+        player2Id: record.player2_id,
+        player2Count: record.player2_count,
+        player2Action: record.player2_action,
+        isPlayer2Alive: record.is_player2_alive,
+        player3Id: record.player3_id,
+        player3Count: record.player3_count,
+        player3Action: record.player3_action,
+        isPlayer3Alive: record.is_player3_alive,
+        player4Id: record.player4_id,
+        player4Count: record.player4_count,
+        player4Action: record.player4_action,
+        isPlayer4Alive: record.is_player4_alive,
+        created_at: record.created_at,
+        updated_at: record.updated_at
+      }));
       
       return NextResponse.json({ 
-        data: records, 
+        data: camelCaseRecords, 
         success: true,
         pagination: {
           page,
@@ -157,8 +238,35 @@ export async function POST(request: NextRequest) {
       [recordUuid]
     );
 
+    // 将数据库的snake_case字段名转换为camelCase
+    const camelCaseNewRecord = {
+      uuid: newRecord.uuid,
+      matchId: newRecord.match_id,
+      matchName: newRecord.match_name,
+      gameRound: newRecord.game_round,
+      gameTurn: newRecord.game_turn,
+      playerId: newRecord.player_id,
+      player1Count: newRecord.player1_count,
+      player1Action: newRecord.player1_action,
+      isPlayer1Alive: newRecord.is_player1_alive,
+      player2Id: newRecord.player2_id,
+      player2Count: newRecord.player2_count,
+      player2Action: newRecord.player2_action,
+      isPlayer2Alive: newRecord.is_player2_alive,
+      player3Id: newRecord.player3_id,
+      player3Count: newRecord.player3_count,
+      player3Action: newRecord.player3_action,
+      isPlayer3Alive: newRecord.is_player3_alive,
+      player4Id: newRecord.player4_id,
+      player4Count: newRecord.player4_count,
+      player4Action: newRecord.player4_action,
+      isPlayer4Alive: newRecord.is_player4_alive,
+      created_at: newRecord.created_at,
+      updated_at: newRecord.updated_at
+    };
+
     return NextResponse.json({
-      data: newRecord,
+      data: camelCaseNewRecord,
       success: true,
       message: '游戏记录创建成功'
     }, { status: 201 });
@@ -261,8 +369,35 @@ export async function PUT(request: NextRequest) {
       [uuid]
     );
 
+    // 将数据库的snake_case字段名转换为camelCase
+    const camelCaseUpdatedRecord = {
+      uuid: updatedRecord.uuid,
+      matchId: updatedRecord.match_id,
+      matchName: updatedRecord.match_name,
+      gameRound: updatedRecord.game_round,
+      gameTurn: updatedRecord.game_turn,
+      playerId: updatedRecord.player_id,
+      player1Count: updatedRecord.player1_count,
+      player1Action: updatedRecord.player1_action,
+      isPlayer1Alive: updatedRecord.is_player1_alive,
+      player2Id: updatedRecord.player2_id,
+      player2Count: updatedRecord.player2_count,
+      player2Action: updatedRecord.player2_action,
+      isPlayer2Alive: updatedRecord.is_player2_alive,
+      player3Id: updatedRecord.player3_id,
+      player3Count: updatedRecord.player3_count,
+      player3Action: updatedRecord.player3_action,
+      isPlayer3Alive: updatedRecord.is_player3_alive,
+      player4Id: updatedRecord.player4_id,
+      player4Count: updatedRecord.player4_count,
+      player4Action: updatedRecord.player4_action,
+      isPlayer4Alive: updatedRecord.is_player4_alive,
+      created_at: updatedRecord.created_at,
+      updated_at: updatedRecord.updated_at
+    };
+
     return NextResponse.json({
-      data: updatedRecord,
+      data: camelCaseUpdatedRecord,
       success: true,
       message: '游戏记录更新成功'
     });
