@@ -1,4 +1,4 @@
-import { LbPlay } from '@/app/@types/lb_play';
+import { LbPlay } from '@/app/types/lb_play';
 import { mockLbPlayers } from '@/app/mock/data/lbPlayData';
 
 export interface GetPlayersResponse {

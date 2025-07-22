@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Home() {
   return (
@@ -18,17 +17,17 @@ export default function Home() {
         {/* Game Card */}
         <div className="flex justify-center">
           <div className="w-full max-w-md">
-            <Card className="border-border hover:shadow-lg transition-all duration-200">
-              <CardHeader>
+            <div className="border border-border hover:shadow-lg transition-all duration-200 bg-card text-card-foreground flex flex-col gap-6 rounded-xl py-6 shadow-sm">
+              <div className="px-6">
                 <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-muted rounded-lg">
                   <span className="text-2xl">🍺</span>
                 </div>
-                <CardTitle className="text-center text-xl">Liar's Bar - 德扑计算器</CardTitle>
-                <CardDescription className="text-center">
+                <h2 className="font-semibold text-center text-xl mb-2">Liar's Bar - 德扑计算器</h2>
+                <p className="text-muted-foreground text-sm text-center mb-6">
                   记录玩家子弹消耗以及是否存活
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+                </p>
+              </div>
+              <div className="px-6">
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center text-sm text-muted-foreground">
                     <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
@@ -50,8 +49,8 @@ export default function Home() {
                 >
                   进入德扑计算器
                 </Link>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
 

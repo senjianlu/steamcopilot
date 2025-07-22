@@ -15,9 +15,9 @@ import {
 import { cn } from "@/lib/utils";
 import { getRecordsByMatchId } from '@/app/mock/data/lbRecordData';
 import { getPlayers } from "@/app/services/playerService";
-import { LbPlay } from "@/app/@types/lb_play";
-import { LbRecord } from "@/app/@types/lb_record";
-import { LbAction } from "@/app/@types/lb_action_enum";
+import { LbPlay } from "@/app/types/lb_play";
+import { LbRecord } from "@/app/types/lb_record";
+import { LbAction } from "@/app/types/lb_action_enum";
 
 interface TableProps {
   matchId: number | null;

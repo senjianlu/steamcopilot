@@ -1,4 +1,4 @@
-import { LbPlay } from '@/app/@types/lb_play';
+import { LbPlay } from '@/app/types/lb_play';
 
 export const mockLbPlayers: LbPlay[] = [
   new LbPlay(1, "Play 1", "1️⃣"),

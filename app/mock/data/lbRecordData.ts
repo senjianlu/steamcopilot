@@ -1,5 +1,5 @@
-import { LbRecord } from '@/app/@types/lb_record';
-import { LbAction } from '@/app/@types/lb_action_enum';
+import { LbRecord } from '@/app/types/lb_record';
+import { LbAction } from '@/app/types/lb_action_enum';
 
 export const mockLbRecords: LbRecord[] = [
   new LbRecord(
