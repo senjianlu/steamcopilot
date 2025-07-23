@@ -327,7 +327,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
 
       // 计算吃鸡 - 检查每个玩家是否在该回合吃鸡
       // 玩家 1 吃鸡判定
-      if (record.player1Action === LbAction.WIN && !record.isPlayer2Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
+      if (record.player1Action === LbAction.WIN && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) {
         if (statsMap.has(record.playerId)) {
           const stats = statsMap.get(record.playerId)!;
           stats.chickens += 1;
@@ -335,7 +335,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         }
       }
       // 玩家 2 吃鸡判定
-      if (record.player2Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
+      if (record.player2Action === LbAction.WIN && (!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) {
         if (statsMap.has(record.player2Id)) {
           const stats = statsMap.get(record.player2Id)!;
           stats.chickens += 1;
@@ -343,7 +343,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         }
       }
       // 玩家 3 吃鸡判定
-      if (record.player3Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer4Alive) {
+      if (record.player3Action === LbAction.WIN && (!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) {
         if (statsMap.has(record.player3Id)) {
           const stats = statsMap.get(record.player3Id)!;
           stats.chickens += 1;
@@ -351,7 +351,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         }
       }
       // 玩家 4 吃鸡判定
-      if (record.player4Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer3Alive) {
+      if (record.player4Action === LbAction.WIN && (!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE)) {
         if (statsMap.has(record.player4Id)) {
           const stats = statsMap.get(record.player4Id)!;
           stats.chickens += 1;
@@ -997,7 +997,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             </Tooltip>
                           </TooltipProvider>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
-                          {!record.isPlayer2Alive && !record.isPlayer3Alive && !record.isPlayer4Alive && record.player1Action === LbAction.WIN &&
+                          {((!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) && record.player1Action === LbAction.WIN &&
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge className="bg-yellow-200">👑</Badge>
@@ -1044,7 +1044,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             </Tooltip>
                           </TooltipProvider>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
-                          {!record.isPlayer1Alive && !record.isPlayer3Alive && !record.isPlayer4Alive && record.player2Action === LbAction.WIN &&
+                          {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) && record.player2Action === LbAction.WIN &&
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge className="bg-yellow-200">👑</Badge>
@@ -1091,7 +1091,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             </Tooltip>
                           </TooltipProvider>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
-                          {!record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer4Alive && record.player3Action === LbAction.WIN &&
+                          {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE)) && record.player3Action === LbAction.WIN &&
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge className="bg-yellow-200">👑</Badge>
@@ -1138,7 +1138,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             </Tooltip>
                           </TooltipProvider>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
-                          {!record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer3Alive && record.player4Action === LbAction.WIN &&
+                          {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE)) && record.player4Action === LbAction.WIN &&
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Badge className="bg-yellow-200">👑</Badge>
