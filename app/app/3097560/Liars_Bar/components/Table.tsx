@@ -828,11 +828,11 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 获取行动对应的背景色样式
   const getActionBackground = (action: string) => {
     switch(action) {
-      case LbAction.DIE: return 'bg-red-50';
-      case LbAction.GOD_SAVED: return 'bg-yellow-50';
-      case LbAction.WIN: return 'bg-green-50';
-      case LbAction.DEAD: return 'bg-gray-100';
-      default: return 'bg-gray-50';
+      case LbAction.DIE: return 'bg-red-100';
+      case LbAction.GOD_SAVED: return 'bg-yellow-100';
+      case LbAction.WIN: return 'bg-green-100';
+      case LbAction.DEAD: return 'bg-gray-200';
+      default: return '';
     }
   };
 
@@ -1194,6 +1194,9 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
             {/* 状态说明 */}
             <div className="flex items-center gap-3 mb-2 flex-wrap">
               <span className="flex items-center gap-1">
+                ⬜ <span>输了（或其他无需操作的状态）</span>
+              </span>
+              <span className="flex items-center gap-1">
                 ❌ <span>死亡</span>
               </span>
               <span className="flex items-center gap-1">
@@ -1204,9 +1207,6 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
               </span>
               <span className="flex items-center gap-1">
                 👼 <span>God Saved</span>
-              </span>
-              <span className="flex items-center gap-1">
-                ⬜ <span>无特殊动作</span>
               </span>
             </div>
             
