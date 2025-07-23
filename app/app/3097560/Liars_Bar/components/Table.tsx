@@ -865,6 +865,17 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
+                          {!record.isPlayer2Alive && !record.isPlayer3Alive && !record.isPlayer4Alive && record.player1Action === LbAction.WIN &&
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-yellow-200">👑</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>本轮吃鸡</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          }
                         </div>
                       </td>
                       <td className={`py-2 px-4 ${getActionBackground(record.player2Action)}`}>
@@ -901,6 +912,17 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
+                          {!record.isPlayer1Alive && !record.isPlayer3Alive && !record.isPlayer4Alive && record.player2Action === LbAction.WIN &&
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-yellow-200">👑</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>本轮吃鸡</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          }
                         </div>
                       </td>
                       <td className={`py-2 px-4 ${getActionBackground(record.player3Action)}`}>
@@ -937,6 +959,17 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
+                          {!record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer4Alive && record.player3Action === LbAction.WIN &&
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-yellow-200">👑</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>本轮吃鸡</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          }
                         </div>
                       </td>
                       <td className={`py-2 px-4 ${getActionBackground(record.player4Action)}`}>
@@ -973,6 +1006,17 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
+                          {!record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer3Alive && record.player4Action === LbAction.WIN &&
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge className="bg-yellow-200">👑</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>本轮吃鸡</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          }
                         </div>
                       </td>
                     </tr>
