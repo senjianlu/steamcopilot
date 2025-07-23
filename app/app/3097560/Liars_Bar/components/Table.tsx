@@ -18,14 +18,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-// 自定义样式，隐藏 number 输入框的上下调整按钮
 import { cn } from "@/lib/utils";
-// 使用真实的API调用
 import { LbPlay } from "@/app/types/lb_play";
 import { LbRecord } from "@/app/types/lb_record";
 import { LbAction } from "@/app/types/lb_action_enum";
 
-// API调用函数
+/**
+ * 从 API 获取玩家列表
+ * @return {Promise<{ success: boolean; data: LbPlay[] }>} 返回玩家列表
+ * @throws {Error} 如果请求失败
+ */
 const fetchPlayers = async (): Promise<{ success: boolean; data: LbPlay[] }> => {
   try {
     const response = await fetch('/api/app/3097560/Liars_Bar/lbPlay');
@@ -39,6 +41,37 @@ const fetchPlayers = async (): Promise<{ success: boolean; data: LbPlay[] }> => 
   }
 };
 
+/**
+ * 获取下一个对局 ID
+ * * @return {Promise<number>} 返回下一个对局 ID
+ * * @throws {Error} 如果请求失败
+ */
+const getNextMatchId = async (): Promise<number> => {
+  try {
+    const response = await fetch('/api/app/3097560/Liars_Bar/matches');
+    if (!response.ok) {
+      throw new Error('Failed to fetch matches');
+    }
+    const result = await response.json();
+    const matches = result.success ? result.data : [];
+    
+    // 找到最大的match_id并加1，如果没有数据则从1开始
+    const maxId = matches.length > 0 
+      ? Math.max(...matches.map((m: any) => m.match_id)) 
+      : 0;
+    return maxId + 1;
+  } catch (error) {
+    console.error('Error getting next match ID:', error);
+    return Date.now(); // 备用方案：使用时间戳
+  }
+};
+
+/**
+ * 通过 MatchId 检索记录
+ * @param {number} matchId - 对局 ID
+ * @return {Promise<LbRecord[]>} 返回匹配 ID 的记录列表
+ * @throws {Error} 如果请求失败
+ */
 const fetchRecordsByMatchId = async (matchId: number): Promise<LbRecord[]> => {
   try {
     const response = await fetch(`/api/app/3097560/Liars_Bar/lbRecord?matchId=${matchId}`);
@@ -53,6 +86,11 @@ const fetchRecordsByMatchId = async (matchId: number): Promise<LbRecord[]> => {
   }
 };
 
+/**
+ * 更新记录
+ * @param {LbRecord} record - 要更新的记录
+ * @return {Promise<boolean>} 返回更新是否成功
+ */
 const updateRecord = async (record: LbRecord): Promise<boolean> => {
   try {
     const response = await fetch('/api/app/3097560/Liars_Bar/lbRecord', {
@@ -93,6 +131,11 @@ const updateRecord = async (record: LbRecord): Promise<boolean> => {
   }
 };
 
+/**
+ * 创建新记录
+ * @param {Partial<LbRecord>} record - 要创建的记录
+ * @return {Promise<boolean>} 返回创建是否成功
+ */
 const createRecord = async (record: Partial<LbRecord>): Promise<boolean> => {
   try {
     const response = await fetch('/api/app/3097560/Liars_Bar/lbRecord', {
@@ -132,33 +175,11 @@ const createRecord = async (record: Partial<LbRecord>): Promise<boolean> => {
   }
 };
 
-const getNextMatchId = async (): Promise<number> => {
-  try {
-    const response = await fetch('/api/app/3097560/Liars_Bar/matches');
-    if (!response.ok) {
-      throw new Error('Failed to fetch matches');
-    }
-    const result = await response.json();
-    const matches = result.success ? result.data : [];
-    
-    // 找到最大的match_id并加1，如果没有数据则从1开始
-    const maxId = matches.length > 0 
-      ? Math.max(...matches.map((m: any) => m.match_id)) 
-      : 0;
-    return maxId + 1;
-  } catch (error) {
-    console.error('Error getting next match ID:', error);
-    return Date.now(); // 备用方案：使用时间戳
-  }
-};
-
-interface TableProps {
-  matchId: number | null;
-  matchName: string;
-  onNewMatch?: (matchId: number, matchName: string) => void; // 新建对局回调
-}
-
-// 生成基于时间的对局名
+/**
+ * 生成对局名 - 基于创建时间
+ * @param createdAt - 记录创建时间
+ * @returns {string} 返回格式化的对局名
+ */
 const generateMatchNameFromTime = (createdAt?: string): string => {
   const date = createdAt ? new Date(createdAt) : new Date();
   const year = date.getFullYear();
@@ -168,6 +189,12 @@ const generateMatchNameFromTime = (createdAt?: string): string => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 };
+
+interface TableProps {
+  matchId: number | null;
+  matchName: string;
+  onNewMatch?: (matchId: number, matchName: string) => void; // 新建对局回调
+}
 
 export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [records, setRecords] = useState<LbRecord[]>([]);
@@ -192,7 +219,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 判断对局是否已保存到数据库
   const isMatchSaved = records.length > 0;
 
-  // 计算显示的对局名 - 基于第一条记录的时间或现有matchName
+  // 计算显示的对局名 - 基于第一条记录的时间或现有 matchName
   const displayMatchName = records.length > 0 
     ? generateMatchNameFromTime(records[0].created_at) 
     : matchName;
@@ -267,9 +294,9 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       });
     });
     
-    // 计算子弹数、DIE次数和获胜次数
+    // 计算子弹数、DIE 次数和获胜次数
     records.forEach(record => {
-      // 计算玩家1的数据
+      // 计算玩家 1 的数据
       if (statsMap.has(record.playerId)) {
         const stats = statsMap.get(record.playerId)!;
         if (record.player1Count > 0) {
@@ -284,7 +311,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         statsMap.set(record.playerId, stats);
       }
       
-      // 计算玩家2的数据
+      // 计算玩家 2 的数据
       if (statsMap.has(record.player2Id)) {
         const stats = statsMap.get(record.player2Id)!;
         if (record.player2Count > 0) {
@@ -299,7 +326,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         statsMap.set(record.player2Id, stats);
       }
       
-      // 计算玩家3的数据
+      // 计算玩家 3 的数据
       if (statsMap.has(record.player3Id)) {
         const stats = statsMap.get(record.player3Id)!;
         if (record.player3Count > 0) {
@@ -314,7 +341,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         statsMap.set(record.player3Id, stats);
       }
       
-      // 计算玩家4的数据
+      // 计算玩家 4 的数据
       if (statsMap.has(record.player4Id)) {
         const stats = statsMap.get(record.player4Id)!;
         if (record.player4Count > 0) {
@@ -335,8 +362,6 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
     setBulletStats(stats);
     setShowStats(true);
   };
-
-
 
   // 获取玩家名称
   const getPlayerName = (playerId: number) => {
@@ -363,7 +388,11 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
     if (round === undefined || round === null) {
       return "1"; // 默认值
     }
-    const chineseNumbers = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+    const chineseNumbers = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十",
+      "十一", "十二", "十三", "十四", "十五", "十六", "十七", "十八", "十九", "二十", 
+      "二十一", "二十二", "二十三", "二十四", "二十五", "二十六", "二十七", "二十八", "二十九", "三十",
+      "三十一", "三十二", "三十三", "三十四", "三十五", "三十六", "三十七", "三十八", "三十九", "四十",
+      "四十一", "四十二", "四十三", "四十四", "四十五", "四十六", "四十七", "四十八", "四十九", "五十"];
     return chineseNumbers[round] || round.toString();
   };
 
@@ -456,6 +485,10 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const handleNewRound = async () => {
     if (!matchId) return;
 
+    // 先保存所有记录
+    const savePromises = records.map(record => updateRecord(record));
+    await Promise.all(savePromises);
+
     try {
       // 根据是否有记录决定使用的玩家
       const playerIds = isMatchSaved && records.length > 0 
@@ -493,7 +526,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         if (updatedRecords.length > 0) {
           calculateBulletStats(updatedRecords);
         }
-        alert('新一轮游戏创建成功！');
+        // alert('新一轮游戏创建成功！');
       } else {
         alert('创建新一轮游戏失败');
       }
@@ -506,6 +539,10 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 新一回合
   const handleNewTurn = async () => {
     if (!matchId) return;
+
+    // 先保存所有记录
+    const savePromises = records.map(record => updateRecord(record));
+    await Promise.all(savePromises);
 
     try {
       // 根据是否有记录决定使用的玩家
@@ -548,7 +585,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         if (updatedRecords.length > 0) {
           calculateBulletStats(updatedRecords);
         }
-        alert('新一回合创建成功！');
+        // alert('新一回合创建成功！');
       } else {
         alert('创建新一回合失败');
       }
@@ -557,8 +594,6 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       alert('创建新一回合失败');
     }
   };
-
-
 
   // 新建对局
   const handleNewMatch = async () => {
@@ -661,9 +696,9 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 获取行动对应的背景色样式
   const getActionBackground = (action: string) => {
     switch(action) {
-      case LbAction.DIE: return 'bg-red-100';
-      case LbAction.GOD_SAVED: return 'bg-yellow-100';
-      case LbAction.WIN: return 'bg-green-100';
+      case LbAction.DIE: return 'bg-red-50';
+      case LbAction.GOD_SAVED: return 'bg-yellow-50';
+      case LbAction.WIN: return 'bg-green-50';
       default: return '';
     }
   };
