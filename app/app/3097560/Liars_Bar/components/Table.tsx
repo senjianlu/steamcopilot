@@ -201,7 +201,15 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [players, setPlayers] = useState<LbPlay[]>([]);
 
   const [showStats, setShowStats] = useState(false);
-  const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number; deaths: number; wins: number; chickens: number }[]>([]);
+  const [bulletStats, setBulletStats] = useState<{ 
+    name: string; 
+    nonWinBullets: number; 
+    deaths: number; 
+    wins: number; 
+    chickens: number;
+    calculatedBullets: number;
+    totalBullets: number;
+  }[]>([]);
 
   // 对局玩家选择状态
   const [selectedPlayers, setSelectedPlayers] = useState<{
@@ -273,7 +281,15 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 计算子弹统计
   const calculateBulletStats = (records: LbRecord[]) => {
     const playerIds = new Set<number>();
-    const statsMap = new Map<number, { name: string; bullets: number; deaths: number; wins: number; chickens: number }>();
+    const statsMap = new Map<number, { 
+      name: string; 
+      nonWinBullets: number; 
+      deaths: number; 
+      wins: number; 
+      chickens: number;
+      calculatedBullets: number;
+      totalBullets: number;
+    }>();
     
     // 收集所有玩家ID（不论存活状态）
     records.forEach(record => {
@@ -288,17 +304,29 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       const player = players.find(p => p.id === id);
       statsMap.set(id, { 
         name: player?.name || `玩家${id}`, 
-        bullets: 0,
+        nonWinBullets: 0,
         deaths: 0,
         wins: 0,
-        chickens: 0
+        chickens: 0,
+        calculatedBullets: 0,
+        totalBullets: 0
       });
     });
     
-    // 计算子弹数、DIE 次数、获胜次数和吃鸡次数
+    // 计算统计数据
     records.forEach(record => {
+      // 计算每回合其他所有人的子弹数总和（用于获胜者加分）
+      const getAllOtherBullets = (currentPlayerId: number) => {
+        let total = 0;
+        if (currentPlayerId !== record.playerId && record.player1Count > 0) total += record.player1Count;
+        if (currentPlayerId !== record.player2Id && record.player2Count > 0) total += record.player2Count;
+        if (currentPlayerId !== record.player3Id && record.player3Count > 0) total += record.player3Count;
+        if (currentPlayerId !== record.player4Id && record.player4Count > 0) total += record.player4Count;
+        return total;
+      };
+
       // 计算吃鸡 - 检查每个玩家是否在该回合吃鸡
-      // 玩家1吃鸡判定
+      // 玩家 1 吃鸡判定
       if (record.player1Action === LbAction.WIN && !record.isPlayer2Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
         if (statsMap.has(record.playerId)) {
           const stats = statsMap.get(record.playerId)!;
@@ -306,7 +334,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
           statsMap.set(record.playerId, stats);
         }
       }
-      // 玩家2吃鸡判定
+      // 玩家 2 吃鸡判定
       if (record.player2Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
         if (statsMap.has(record.player2Id)) {
           const stats = statsMap.get(record.player2Id)!;
@@ -314,7 +342,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
           statsMap.set(record.player2Id, stats);
         }
       }
-      // 玩家3吃鸡判定
+      // 玩家 3 吃鸡判定
       if (record.player3Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer4Alive) {
         if (statsMap.has(record.player3Id)) {
           const stats = statsMap.get(record.player3Id)!;
@@ -322,7 +350,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
           statsMap.set(record.player3Id, stats);
         }
       }
-      // 玩家4吃鸡判定
+      // 玩家 4 吃鸡判定
       if (record.player4Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer3Alive) {
         if (statsMap.has(record.player4Id)) {
           const stats = statsMap.get(record.player4Id)!;
@@ -334,14 +362,30 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       // 计算玩家 1 的数据
       if (statsMap.has(record.playerId)) {
         const stats = statsMap.get(record.playerId)!;
-        if (record.player1Count > 0) {
-          stats.bullets += record.player1Count;
+        // 非获胜子弹消耗（只有非获胜回合的子弹数）
+        if (record.player1Action !== LbAction.WIN && record.player1Count > 0) {
+          stats.nonWinBullets += record.player1Count;
         }
+        // 死亡次数
         if (record.player1Action === LbAction.DIE) {
           stats.deaths += 1;
         }
+        // 获胜次数
         if (record.player1Action === LbAction.WIN) {
           stats.wins += 1;
+        }
+        // 计算子弹数
+        // 非获胜子弹消耗 -1
+        if (record.player1Action !== LbAction.WIN && record.player1Count > 0) {
+          stats.calculatedBullets -= record.player1Count;
+        }
+        // 死亡 -8
+        if (record.player1Action === LbAction.DIE) {
+          stats.calculatedBullets -= 8;
+        }
+        // 获胜 +其他所有人的子弹数
+        if (record.player1Action === LbAction.WIN) {
+          stats.calculatedBullets += getAllOtherBullets(record.playerId);
         }
         statsMap.set(record.playerId, stats);
       }
@@ -349,14 +393,27 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       // 计算玩家 2 的数据
       if (statsMap.has(record.player2Id)) {
         const stats = statsMap.get(record.player2Id)!;
-        if (record.player2Count > 0) {
-          stats.bullets += record.player2Count;
+        // 非获胜子弹消耗
+        if (record.player2Action !== LbAction.WIN && record.player2Count > 0) {
+          stats.nonWinBullets += record.player2Count;
         }
+        // 死亡次数
         if (record.player2Action === LbAction.DIE) {
           stats.deaths += 1;
         }
+        // 获胜次数
         if (record.player2Action === LbAction.WIN) {
           stats.wins += 1;
+        }
+        // 计算子弹数
+        if (record.player2Action !== LbAction.WIN && record.player2Count > 0) {
+          stats.calculatedBullets -= record.player2Count;
+        }
+        if (record.player2Action === LbAction.DIE) {
+          stats.calculatedBullets -= 8;
+        }
+        if (record.player2Action === LbAction.WIN) {
+          stats.calculatedBullets += getAllOtherBullets(record.player2Id);
         }
         statsMap.set(record.player2Id, stats);
       }
@@ -364,14 +421,27 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       // 计算玩家 3 的数据
       if (statsMap.has(record.player3Id)) {
         const stats = statsMap.get(record.player3Id)!;
-        if (record.player3Count > 0) {
-          stats.bullets += record.player3Count;
+        // 非获胜子弹消耗
+        if (record.player3Action !== LbAction.WIN && record.player3Count > 0) {
+          stats.nonWinBullets += record.player3Count;
         }
+        // 死亡次数
         if (record.player3Action === LbAction.DIE) {
           stats.deaths += 1;
         }
+        // 获胜次数
         if (record.player3Action === LbAction.WIN) {
           stats.wins += 1;
+        }
+        // 计算子弹数
+        if (record.player3Action !== LbAction.WIN && record.player3Count > 0) {
+          stats.calculatedBullets -= record.player3Count;
+        }
+        if (record.player3Action === LbAction.DIE) {
+          stats.calculatedBullets -= 8;
+        }
+        if (record.player3Action === LbAction.WIN) {
+          stats.calculatedBullets += getAllOtherBullets(record.player3Id);
         }
         statsMap.set(record.player3Id, stats);
       }
@@ -379,16 +449,42 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       // 计算玩家 4 的数据
       if (statsMap.has(record.player4Id)) {
         const stats = statsMap.get(record.player4Id)!;
-        if (record.player4Count > 0) {
-          stats.bullets += record.player4Count;
+        // 非获胜子弹消耗
+        if (record.player4Action !== LbAction.WIN && record.player4Count > 0) {
+          stats.nonWinBullets += record.player4Count;
         }
+        // 死亡次数
         if (record.player4Action === LbAction.DIE) {
           stats.deaths += 1;
         }
+        // 获胜次数
         if (record.player4Action === LbAction.WIN) {
           stats.wins += 1;
         }
+        // 计算子弹数
+        if (record.player4Action !== LbAction.WIN && record.player4Count > 0) {
+          stats.calculatedBullets -= record.player4Count;
+        }
+        if (record.player4Action === LbAction.DIE) {
+          stats.calculatedBullets -= 8;
+        }
+        if (record.player4Action === LbAction.WIN) {
+          stats.calculatedBullets += getAllOtherBullets(record.player4Id);
+        }
         statsMap.set(record.player4Id, stats);
+      }
+    });
+
+    // 最后计算总子弹数（计算子弹数 + 吃鸡奖励）
+    Array.from(statsMap.values()).forEach(stats => {
+      const playerId = Array.from(playerIds).find(id => 
+        (players.find(p => p.id === id)?.name || `玩家${id}`) === stats.name
+      );
+      if (playerId && statsMap.has(playerId)) {
+        const currentStats = statsMap.get(playerId)!;
+        // 吃鸡 +24
+        currentStats.totalBullets = currentStats.calculatedBullets + (currentStats.chickens * 24);
+        statsMap.set(playerId, currentStats);
       }
     });
     
@@ -1148,8 +1244,8 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                       </div>
                       <div className="space-y-0.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">子弹消耗:</span>
-                          <span className="text-lg font-bold text-primary">{stat.bullets}</span>
+                          <span className="text-xs text-muted-foreground">非获胜子弹:</span>
+                          <span className="text-lg font-bold text-primary">{stat.nonWinBullets}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">死亡:</span>
@@ -1162,6 +1258,14 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">吃鸡:</span>
                           <span className="text-lg font-bold text-yellow-600">👑 {stat.chickens}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">计算子弹:</span>
+                          <span className="text-lg font-bold text-blue-600">{stat.calculatedBullets > 0 ? '+' : ''}{stat.calculatedBullets}</span>
+                        </div>
+                        <div className="flex items-center justify-between border-t pt-1">
+                          <span className="text-xs text-muted-foreground font-bold">总子弹:</span>
+                          <span className="text-lg font-bold text-purple-600">{stat.totalBullets > 0 ? '+' : ''}{stat.totalBullets}</span>
                         </div>
                       </div>
                     </CardContent>
