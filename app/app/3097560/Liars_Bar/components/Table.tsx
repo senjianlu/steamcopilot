@@ -1225,11 +1225,11 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
 
       {/* 游戏数据统计 */}
       {showStats && bulletStats.length > 0 && (
-        <Card className="bg-gray-50 border border-border">
-          <CardHeader className="pb-2">
+        <Card className="bg-gray-50 border border-border py-3 gap-3">
+          <CardHeader className="pb-0">
             <h3 className="text-lg font-semibold text-foreground text-center">游戏数据统计</h3>
           </CardHeader>
-          <CardContent className="pt-2">
+          <CardContent className="pt-0">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {bulletStats.map((stat, index) => {
                 // 根据玩家ID查找对应的图标
@@ -1237,7 +1237,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                 const playerIcon = playerId ? getPlayerIcon(playerId) : '';
                 
                 return (
-                  <Card key={index} className="bg-muted/30 border-muted">
+                  <Card key={index} className="bg-muted/30 border-muted py-0">
                     <CardContent className="p-2 text-center">
                       <div className="font-semibold text-foreground mb-1">
                         {playerIcon} {stat.name}
@@ -1259,12 +1259,8 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                           <span className="text-xs text-muted-foreground">吃鸡:</span>
                           <span className="text-lg font-bold text-yellow-600">👑 {stat.chickens}</span>
                         </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">计算子弹:</span>
-                          <span className="text-lg font-bold text-blue-600">{stat.calculatedBullets > 0 ? '+' : ''}{stat.calculatedBullets}</span>
-                        </div>
                         <div className="flex items-center justify-between border-t pt-1">
-                          <span className="text-xs text-muted-foreground font-bold">总子弹:</span>
+                          <span className="text-xs text-muted-foreground font-bold">子弹结算:</span>
                           <span className="text-lg font-bold text-purple-600">{stat.totalBullets > 0 ? '+' : ''}{stat.totalBullets}</span>
                         </div>
                       </div>
