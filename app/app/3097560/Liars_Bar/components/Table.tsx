@@ -820,8 +820,8 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       case LbAction.DIE: return '❌';
       case LbAction.GOD_SAVED: return '👼';
       case LbAction.WIN: return '✅';
-      case LbAction.DEAD: return '💀';
-      default: return '';
+      case LbAction.DEAD: return '☠️';
+      default: return '⬜';
     }
   };
   
@@ -831,10 +831,19 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       case LbAction.DIE: return 'bg-red-50';
       case LbAction.GOD_SAVED: return 'bg-yellow-50';
       case LbAction.WIN: return 'bg-green-50';
-      case LbAction.DEAD: return 'bg-black/20';
-      default: return '';
+      case LbAction.DEAD: return 'bg-gray-100';
+      default: return 'bg-gray-50';
     }
   };
+
+  // 获取行动选项
+  const getActionOptions = () => [
+    { value: 'none', label: '⬜ 无特殊动作', icon: '⬜' },
+    { value: LbAction.DIE, label: '❌ 死亡', icon: '❌' },
+    { value: LbAction.DEAD, label: '☠️ 已经死了', icon: '☠️' },
+    { value: LbAction.WIN, label: '✅ 获胜', icon: '✅' },
+    { value: LbAction.GOD_SAVED, label: '👼 God Saved', icon: '👼' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -974,30 +983,25 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             value={record.player1Count > 0 ? record.player1Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 1, e.target.value)}
                           />
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge 
-                                  className={`cursor-pointer ${record.player1Action === LbAction.DIE ? 'bg-red-200 hover:bg-red-300' : 
-                                    record.player1Action === LbAction.WIN ? 'bg-green-200 hover:bg-green-300' : 
-                                    record.player1Action === LbAction.GOD_SAVED ? 'bg-yellow-200 hover:bg-yellow-300' : 
-                                    'bg-gray-200 hover:bg-gray-300'}`}
-                                  onClick={() => {
-                                    // 循环切换行动状态
-                                    const actions = Object.values(LbAction);
-                                    const currentIndex = actions.indexOf(record.player1Action as LbAction);
-                                    const nextIndex = (currentIndex + 1) % actions.length;
-                                    handleActionChange(recordIndex, 1, actions[nextIndex]);
-                                  }}
-                                >
-                                  {record.player1Action ? getActionIcon(record.player1Action) : ' 　 '} 
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>点击切换状态</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Select
+                            value={record.player1Action || 'none'}
+                            onValueChange={(value) => handleActionChange(recordIndex, 1, value === 'none' ? '' : value)}
+                          >
+                            <SelectTrigger className="w-6 h-5 p-1 text-xs [&>svg]:hidden min-h-0" style={{ minHeight: '20px' }}>
+                              <SelectValue>
+                                <span className="text-xs">
+                                  {getActionIcon(record.player1Action)}
+                                </span>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="w-16 min-w-16">
+                              {getActionOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="p-1">
+                                  <span className="text-xs">{option.icon}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
                           {((!record.isPlayer2Alive || record.player2Action === LbAction.DIE || record.player2Action === LbAction.DEAD) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE || record.player3Action === LbAction.DEAD) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE || record.player4Action === LbAction.DEAD)) && record.player1Action === LbAction.WIN &&
                             <Tooltip>
@@ -1021,30 +1025,25 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             value={record.player2Count > 0 ? record.player2Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 2, e.target.value)}
                           />
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge 
-                                  className={`cursor-pointer ${record.player2Action === LbAction.DIE ? 'bg-red-200 hover:bg-red-300' : 
-                                    record.player2Action === LbAction.WIN ? 'bg-green-200 hover:bg-green-300' : 
-                                    record.player2Action === LbAction.GOD_SAVED ? 'bg-yellow-200 hover:bg-yellow-300' : 
-                                    'bg-gray-200 hover:bg-gray-300'}`}
-                                  onClick={() => {
-                                    // 循环切换行动状态
-                                    const actions = Object.values(LbAction);
-                                    const currentIndex = actions.indexOf(record.player2Action as LbAction);
-                                    const nextIndex = (currentIndex + 1) % actions.length;
-                                    handleActionChange(recordIndex, 2, actions[nextIndex]);
-                                  }}
-                                >
-                                  {record.player2Action ? getActionIcon(record.player2Action) : ' 　 '} 
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>点击切换状态</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Select
+                            value={record.player2Action || 'none'}
+                            onValueChange={(value) => handleActionChange(recordIndex, 2, value === 'none' ? '' : value)}
+                          >
+                            <SelectTrigger className="w-6 h-5 p-1 text-xs [&>svg]:hidden min-h-0" style={{ minHeight: '20px' }}>
+                              <SelectValue>
+                                <span className="text-xs">
+                                  {getActionIcon(record.player2Action)}
+                                </span>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="w-16 min-w-16">
+                              {getActionOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="p-1">
+                                  <span className="text-xs">{option.icon}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
                           {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE || record.player1Action === LbAction.DEAD) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE || record.player3Action === LbAction.DEAD) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE || record.player4Action === LbAction.DEAD)) && record.player2Action === LbAction.WIN &&
                             <Tooltip>
@@ -1068,30 +1067,25 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             value={record.player3Count > 0 ? record.player3Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 3, e.target.value)}
                           />
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge 
-                                  className={`cursor-pointer ${record.player3Action === LbAction.DIE ? 'bg-red-200 hover:bg-red-300' : 
-                                    record.player3Action === LbAction.WIN ? 'bg-green-200 hover:bg-green-300' : 
-                                    record.player3Action === LbAction.GOD_SAVED ? 'bg-yellow-200 hover:bg-yellow-300' : 
-                                    'bg-gray-200 hover:bg-gray-300'}`}
-                                  onClick={() => {
-                                    // 循环切换行动状态
-                                    const actions = Object.values(LbAction);
-                                    const currentIndex = actions.indexOf(record.player3Action as LbAction);
-                                    const nextIndex = (currentIndex + 1) % actions.length;
-                                    handleActionChange(recordIndex, 3, actions[nextIndex]);
-                                  }}
-                                >
-                                  {record.player3Action ? getActionIcon(record.player3Action) : ' 　 '} 
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>点击切换状态</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Select
+                            value={record.player3Action || 'none'}
+                            onValueChange={(value) => handleActionChange(recordIndex, 3, value === 'none' ? '' : value)}
+                          >
+                            <SelectTrigger className="w-6 h-5 p-1 text-xs [&>svg]:hidden min-h-0" style={{ minHeight: '20px' }}>
+                              <SelectValue>
+                                <span className="text-xs">
+                                  {getActionIcon(record.player3Action)}
+                                </span>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="w-16 min-w-16">
+                              {getActionOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="p-1">
+                                  <span className="text-xs">{option.icon}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
                           {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE || record.player1Action === LbAction.DEAD) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE || record.player2Action === LbAction.DEAD) && (!record.isPlayer4Alive || record.player4Action === LbAction.DIE || record.player4Action === LbAction.DEAD)) && record.player3Action === LbAction.WIN &&
                             <Tooltip>
@@ -1115,30 +1109,25 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                             value={record.player4Count > 0 ? record.player4Count : ''}
                             onChange={(e) => handleCountChange(recordIndex, 4, e.target.value)}
                           />
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge 
-                                  className={`cursor-pointer ${record.player4Action === LbAction.DIE ? 'bg-red-200 hover:bg-red-300' : 
-                                    record.player4Action === LbAction.WIN ? 'bg-green-200 hover:bg-green-300' : 
-                                    record.player4Action === LbAction.GOD_SAVED ? 'bg-yellow-200 hover:bg-yellow-300' : 
-                                    'bg-gray-200 hover:bg-gray-300'}`}
-                                  onClick={() => {
-                                    // 循环切换行动状态
-                                    const actions = Object.values(LbAction);
-                                    const currentIndex = actions.indexOf(record.player4Action as LbAction);
-                                    const nextIndex = (currentIndex + 1) % actions.length;
-                                    handleActionChange(recordIndex, 4, actions[nextIndex]);
-                                  }}
-                                >
-                                  {record.player4Action ? getActionIcon(record.player4Action) : ' 　 '} 
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>点击切换状态</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
+                          <Select
+                            value={record.player4Action || 'none'}
+                            onValueChange={(value) => handleActionChange(recordIndex, 4, value === 'none' ? '' : value)}
+                          >
+                            <SelectTrigger className="w-6 h-5 p-1 text-xs [&>svg]:hidden min-h-0" style={{ minHeight: '20px' }}>
+                              <SelectValue>
+                                <span className="text-xs">
+                                  {getActionIcon(record.player4Action)}
+                                </span>
+                              </SelectValue>
+                            </SelectTrigger>
+                            <SelectContent className="w-16 min-w-16">
+                              {getActionOptions().map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="p-1">
+                                  <span className="text-xs">{option.icon}</span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           {/* 如果这行其他玩家都死亡的话，添加 👑 徽章 */}
                           {((!record.isPlayer1Alive || record.player1Action === LbAction.DIE || record.player1Action === LbAction.DEAD) && (!record.isPlayer2Alive || record.player2Action === LbAction.DIE || record.player2Action === LbAction.DEAD) && (!record.isPlayer3Alive || record.player3Action === LbAction.DIE || record.player3Action === LbAction.DEAD)) && record.player4Action === LbAction.WIN &&
                             <Tooltip>
@@ -1199,29 +1188,59 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
       
       {/* Control Buttons */}
       {matchId && records.length > 0 && (
-        <div className="flex justify-end gap-4 flex-wrap">
-          <button
-            className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:bg-primary/50"
-            onClick={handleNewRound}
-            disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
-          >
-            新一轮游戏
-          </button>
-          <button
-            className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:bg-secondary/50"
-            onClick={handleNewTurn}
-            disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
-          >
-            新一回合
-          </button>
+        <div className="flex justify-between items-start gap-8">
+          {/* 左侧说明区域 */}
+          <div className="flex-shrink-0 text-sm text-muted-foreground">
+            {/* 状态说明 */}
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <span className="flex items-center gap-1">
+                ❌ <span>死亡</span>
+              </span>
+              <span className="flex items-center gap-1">
+                ☠️ <span>已经死了</span>
+              </span>
+              <span className="flex items-center gap-1">
+                ✅ <span>获胜</span>
+              </span>
+              <span className="flex items-center gap-1">
+                👼 <span>God Saved</span>
+              </span>
+              <span className="flex items-center gap-1">
+                ⬜ <span>无特殊动作</span>
+              </span>
+            </div>
+            
+            {/* 操作流程说明 */}
+            <div className="text-xs text-muted-foreground/80">
+              <span>1、记录子弹数；2、记录死亡玩家；3、记录胜者；4、开始下一轮/回合</span>
+            </div>
+          </div>
 
-          <button 
-            className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
-            onClick={handleSaveRecords}
-            disabled={!records.length}
-          >
-            保存
-          </button>
+          {/* 右侧按钮组 */}
+          <div className="flex gap-4 flex-wrap">
+            <button
+              className="inline-flex items-center justify-center rounded-md bg-primary px-6 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:bg-primary/50"
+              onClick={handleNewRound}
+              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
+            >
+              新一轮游戏
+            </button>
+            <button
+              className="inline-flex items-center justify-center rounded-md bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:bg-secondary/50"
+              onClick={handleNewTurn}
+              disabled={!isMatchSaved && (!selectedPlayers.player1 || !selectedPlayers.player2 || !selectedPlayers.player3 || !selectedPlayers.player4)}
+            >
+              新一回合
+            </button>
+
+            <button 
+              className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              onClick={handleSaveRecords}
+              disabled={!records.length}
+            >
+              保存
+            </button>
+          </div>
         </div>
       )}
 
