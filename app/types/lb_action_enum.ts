@@ -5,7 +5,8 @@
 export enum LbAction {
   DIE = "Die",            // 玩家死亡
   WIN = "Win",            // 玩家获胜
-  GOD_SAVED = "God Saved" // 玩家被上帝救了
+  GOD_SAVED = "God Saved", // 玩家被上帝救了
+  DEAD = "Dead",          // 玩家死亡（可能是为了兼容性，重复定义）
 }
 
 /**
@@ -14,5 +15,6 @@ export enum LbAction {
 export const LbActionMap = {
   "DIE": "Die", 
   "WIN": "Win", 
-  "GOD_SAVED": "God Saved"
+  "GOD_SAVED": "God Saved",
+  "DEAD": "Dead"
 };
