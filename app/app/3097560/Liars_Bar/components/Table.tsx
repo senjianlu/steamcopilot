@@ -201,7 +201,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   const [players, setPlayers] = useState<LbPlay[]>([]);
 
   const [showStats, setShowStats] = useState(false);
-  const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number; deaths: number; wins: number }[]>([]);
+  const [bulletStats, setBulletStats] = useState<{ name: string; bullets: number; deaths: number; wins: number; chickens: number }[]>([]);
 
   // 对局玩家选择状态
   const [selectedPlayers, setSelectedPlayers] = useState<{
@@ -273,7 +273,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
   // 计算子弹统计
   const calculateBulletStats = (records: LbRecord[]) => {
     const playerIds = new Set<number>();
-    const statsMap = new Map<number, { name: string; bullets: number; deaths: number; wins: number }>();
+    const statsMap = new Map<number, { name: string; bullets: number; deaths: number; wins: number; chickens: number }>();
     
     // 收集所有玩家ID（不论存活状态）
     records.forEach(record => {
@@ -290,12 +290,47 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
         name: player?.name || `玩家${id}`, 
         bullets: 0,
         deaths: 0,
-        wins: 0
+        wins: 0,
+        chickens: 0
       });
     });
     
-    // 计算子弹数、DIE 次数和获胜次数
+    // 计算子弹数、DIE 次数、获胜次数和吃鸡次数
     records.forEach(record => {
+      // 计算吃鸡 - 检查每个玩家是否在该回合吃鸡
+      // 玩家1吃鸡判定
+      if (record.player1Action === LbAction.WIN && !record.isPlayer2Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
+        if (statsMap.has(record.playerId)) {
+          const stats = statsMap.get(record.playerId)!;
+          stats.chickens += 1;
+          statsMap.set(record.playerId, stats);
+        }
+      }
+      // 玩家2吃鸡判定
+      if (record.player2Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer3Alive && !record.isPlayer4Alive) {
+        if (statsMap.has(record.player2Id)) {
+          const stats = statsMap.get(record.player2Id)!;
+          stats.chickens += 1;
+          statsMap.set(record.player2Id, stats);
+        }
+      }
+      // 玩家3吃鸡判定
+      if (record.player3Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer4Alive) {
+        if (statsMap.has(record.player3Id)) {
+          const stats = statsMap.get(record.player3Id)!;
+          stats.chickens += 1;
+          statsMap.set(record.player3Id, stats);
+        }
+      }
+      // 玩家4吃鸡判定
+      if (record.player4Action === LbAction.WIN && !record.isPlayer1Alive && !record.isPlayer2Alive && !record.isPlayer3Alive) {
+        if (statsMap.has(record.player4Id)) {
+          const stats = statsMap.get(record.player4Id)!;
+          stats.chickens += 1;
+          statsMap.set(record.player4Id, stats);
+        }
+      }
+      
       // 计算玩家 1 的数据
       if (statsMap.has(record.playerId)) {
         const stats = statsMap.get(record.playerId)!;
@@ -1123,6 +1158,10 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">获胜:</span>
                           <span className="text-lg font-bold text-green-600">{stat.wins}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">吃鸡:</span>
+                          <span className="text-lg font-bold text-yellow-600">👑 {stat.chickens}</span>
                         </div>
                       </div>
                     </CardContent>
