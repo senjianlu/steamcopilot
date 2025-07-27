@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { LbPlay } from "@/app/types/lb_play";
 import { LbRecord } from "@/app/types/lb_record";
 import { LbAction } from "@/app/types/lb_action_enum";
+import { AlertTriangle } from "lucide-react";
 
 /**
  * 从 API 获取玩家列表
@@ -845,8 +846,17 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
     { value: LbAction.GOD_SAVED, label: '👼 God Saved', icon: '👼' },
   ];
 
+  // 检查该行是否有胜利者
+  const hasWinner = (record: LbRecord) => {
+    return record.player1Action === LbAction.WIN || 
+           record.player2Action === LbAction.WIN || 
+           record.player3Action === LbAction.WIN || 
+           record.player4Action === LbAction.WIN;
+  };
+
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       {/* 游戏对局记录表格 */}
       <Card className="bg-card border border-border">
         <CardHeader>
@@ -964,6 +974,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                         </div>
                       )}
                     </th>
+                    <th className="text-center py-3 px-2 font-bold text-foreground w-10"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1141,10 +1152,24 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
                           }
                         </div>
                       </td>
+                      <td className="py-3 px-2 text-center w-10">
+                        {!hasWinner(record) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center justify-center">
+                                <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>1. 未填写胜利者</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </td>
                     </tr>
                   )) : (
                     <tr>
-                      <td colSpan={6} className="py-12 text-center text-muted-foreground">
+                      <td colSpan={7} className="py-12 text-center text-muted-foreground">
                         <div className="space-y-4">
                           <p>已创建新对局，请选择玩家后开始游戏</p>
                           <button 
@@ -1293,6 +1318,7 @@ export default function Table({ matchId, matchName, onNewMatch }: TableProps) {
           </CardContent>
         </Card>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
